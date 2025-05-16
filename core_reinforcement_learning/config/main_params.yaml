@@ -1,0 +1,255 @@
+
+############## RL PARAMETERS ###############
+
+/**:
+  publish_agents_velocity:
+    ros__parameters:
+      buffer_size: 1
+      callback_frequency: 10 #Hz
+      sensor_noise: 0.03
+
+  construct_safe_corridor:
+    ros__parameters:
+      number_of_boundary_points: 4
+      callback_frequency: 10 #Hz
+  
+  distance_to_undisturbed_path:
+    ros__parameters:
+      callback_frequency: 1 #Hz
+
+  train_rl:
+    ros__parameters:
+      rl_algorithm: "SAC"
+      time_steps: 1000000
+      action_bounds: [-1.0, 1.0]        #The bounds for the actions that the RL algorithm can take. Either maximum velocity or maximum distance depending on action type.
+      seed: 0                             #The seed for the random number generator
+      train: True                       #Determines if the RL algorithm should be trained or evaluated
+      time_step_length: 0.3                #The length of a timestep in seconds  
+      footprint_scale: 1.0               #The scale of the footprint of the robot compared to the one used by NAV2. This is used for determining if there is a future collision.
+      grid_size: 0.1                     #The size of the grid to use for discrete plan actions
+      max_trial_timesteps: 20
+
+      ### REWARD FUNCTION PARAMETERS ###
+      reward_functions: ['max_timesteps','path_traversal', 'agent_position_disturbance','agent_velocity_disturbance', 'outside_interaction_range'] #The reward functions to use for the RL algorithm
+      max_timesteps:
+        reward: -1.0
+      path_traversal:
+        max_reward: 1.0
+        path_traversal_for_positive_reward: 0.4   #The NAV2 path distance the agents needs to reduce to get a reward in an interaction
+      agent_position_disturbance:
+        max_reward: 0.0
+      agent_velocity_disturbance:
+        v_pref: 0.13                       #The preferred velocity of the agent. This is used to determine the reward for the agent velocity disturbance
+        max_reward: 0.0
+      outside_interaction_range:
+        max_reward: 1.0                  #The reward for the agent being outside the interaction range and traversing at least the path traversal distance
+        min_reward: -1.0                  #The reward for the agent being outside the interaction range and not traversing the path traversal distance
+        path_travel_positive_interaction: 2.0   #The NAV2 path distance the agents needs to reduce to get a reward in an interaction
+
+      ### INTERACTION PARAMETERS ###
+      interaction_range: 6.0             #The interaction range from which the robot will check if there are agents in the vicinity that move towards it.
+      critical_interaction_range: 3.0    #The critical interaction range from which the robot will always apply the RL algorithm independent of the orientations and poses.
+      timesteps_before_switch_to_nav2: 2 #Number of timesteps before the agent switches to the nav2 planner if not in the interaction range
+      
+      ### EXPERT DEMONSTRATION PARAMETERS ###
+      use_expert_demonstrations: True        #Determines if the expert demonstrations should be used for training the RL algorithm
+
+      imitation_learning:
+        expert_class: 'Nav2Policy'            #The class of the expert demonstrations
+        imitation_algorithm: 'DAgger'    #The imitation learning algorithm to use for training the RL algorithm
+        expert_noise_std: 0.03    #The noise standard deviation to add to the expert demonstrations
+        expert_rollout_episodes: 100          #The number of episodes the expert demonstrations should be used for filling the replay buffer
+        dagger:
+          expert_time_steps: 1000               #The number of timesteps the expert demonstrations should be used for training the RL algorithm
+          rollout_round_min_episodes: 3         #The minimum number of episodes to use for the rollout
+          rollout_round_min_timesteps: 500      #The minimum number of timesteps to use for the rollout
+        
+      ### RL ALGORITHM PARAMETERS ###       
+      SAC:
+        save_model_path: "SAC_SB3_Harder_env_single_2_POINTS"
+        load_model_path: "SAC_SB3_Small_Reward/final_model_expert2point"        #The path to the model that should be loaded
+        load_model: False                                                       #Determines if the neural network model should be loaded from a file
+
+        load_replay_buffer_path: "SAC_SB3_Small_Reward/replay_buffer_1000_expert"
+        load_replay_buffer: False
+
+        # SAC SB3 related parameters
+        replay_buffer_size: 250000 
+        learning_starts: 4000           #The number of timesteps before the algorithm starts learning       
+        net_arch: [256, 256]
+        eval_freq: 250
+        target_update_interval: 1
+        train_freq: 2                   #Determines how often the policy should be updated
+        use_sde: False
+        sde_sample_freq: 4
+        use_sde_at_warmup: False
+        verbose: 1
+        batch_size:  256
+        ent_coef: 'auto'            #Determines the entropy of the policy  
+        gamma: 0.99                     #The discount factor
+        tau: 0.005                      #The soft update factor
+        policy_lr: 0.0003
+        gradient_steps: 1
+        q_lr: 0.001
+        reward_scale: 1.0
+        save_model_interval: 1000
+
+      rl_node_manager:
+        callback_frequency: 10 #Hz
+        state_nodes: ['nav2_input', 'plan','lidar', 'agents']
+        utility_nodes: ['costmap','footprint','robot_odom','agent_position_disturbance']
+        costmap:
+          topic: 'global_costmap/costmap'
+          type: 'OccupancyGrid'
+          callback: 'costmap_callback'
+          
+        footprint:
+          topic: 'local_costmap/published_footprint'
+          type: 'PolygonStamped'
+          callback: 'footprint_callback'
+
+        robot_odom:
+          topic: 'odometry'
+          type: 'Odometry'
+          callback: 'odometry_callback'
+
+        nav2_input:
+          topic: 'cmd_vel_nav'
+          type: 'Twist'
+          callback: 'nav2_input_callback'
+
+        plan:
+          topic: 'resampled_plan'
+          type: 'PathWithLength'
+          callback: 'plan_with_length_callback'
+
+        lidar:
+          topic: '/critical_points'
+          type: 'PointArray'
+          callback: 'lidar_point_array_callback'
+
+        lidar_raw:
+          topic: 'scan'
+          type: 'LaserScan'
+          callback: 'lidar_raw_callback'
+
+        agents:
+          topic: '/agents'
+          type: 'People'
+          callback: 'agents_callback'
+
+        agent_position_disturbance:
+          topic: '/closest_distance'
+          type: 'Float32Array'
+          callback: 'agent_position_disturbance_callback'
+        
+
+        
+
+############## MAIN PARAMETERS ###############
+# The main parameters are loaded last as the yaml.safe_load overwrites the parameters 
+# due to the same high level name /** when not used in the ros concept
+
+/**:
+  ros__parameters:
+    # General parameters
+    namespace: "cleaning_robot"
+    use_namespace: True
+    use_sim_time: True
+    world: 'empty'
+    log_level: 'error'
+
+    # General RL settings
+    rl_path_length: 2.0
+    rl_path_samples: 2
+    rl_action_output: "plan"        #Determines if the agent will use the RL algorithm to plan a trajectory or to execute a single action. Options are "plan" or "diff_drive"
+    rl_controller_alg: 'nav2_rl_global_planner/HybridRLSMACPlanner'
+
+  # Gazebo related parameters
+    width: 0.3
+    length: 0.3
+    height: 0.13
+    task_number: 0 # First task for the task generator
+    robot_names: 
+      - "cleaning_robot"
+    
+    robot_frame: "base_link"
+    agent_names:
+      - "agent1"
+    
+    # Task generator parameters
+    TaskGenerator:
+      task_list: ['task0','task1']   #The possible tasks that can be generated in the environment
+      task0:
+        cleaning_robot:
+          position:
+            x_pose: 0.0
+            y_pose: 1.7
+            z_pose: 0.04
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+          goals:
+            - "goal1"
+
+        agent1:
+          position:
+            x_pose: 4.0
+            y_pose: -1.7
+            z_pose: 0.01
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 1.0
+            w: 0.0
+          goals:
+            - "goal5" 
+
+      task1:
+        cleaning_robot:
+          position:
+            x_pose: -2.73
+            y_pose: 1.2
+            z_pose: 0.04
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+          goals:
+            - "goal6"
+        agent1:
+          position:
+            x_pose: 2.0
+            y_pose: 1.7
+            z_pose: 0.01
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 1.0
+            w: 0.0
+          goals:
+            - "goal5"
+
+      goal1: #Left office middle
+        x_pose: 4.0
+        y_pose: -1.66
+        
+      goal2: # Middle office middle
+        x_pose: 4.0
+        y_pose: -1.66
+      goal3: #Bottom office middle
+        x_pose: -3.85
+        y_pose: -1.66
+      goal4: #Toilet 
+        x_pose: 3.95
+        y_pose: 3.07
+      goal5: #coffee corner
+        x_pose: -4.9
+        y_pose: 2.4
+      goal6: # Corridor back
+        x_pose: 4.0
+        y_pose: 1.0
+    

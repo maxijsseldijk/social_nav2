@@ -1,0 +1,5 @@
+<library path="nav2_rl_local_planner">
+	<class name="nav2_rl_local_planner::RLLocalPlanner" type="nav2_rl_local_planner::RLLocalPlanner" base_class_type="nav2_core::Controller">
+	  <description>RL local planner</description>
+	</class>
+</library>

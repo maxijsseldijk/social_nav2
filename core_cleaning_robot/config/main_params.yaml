@@ -1,0 +1,509 @@
+
+############## NODE SPECIFIC PARAMETERS ###############
+
+/**:
+  publish_agents_velocity:
+    ros__parameters:
+      buffer_size: 1
+      callback_frequency: 10 #Hz
+      sensor_noise: 0.03
+      average_velocity: False
+      smoothing_alpha: 0.1
+
+  publish_robot_as_people_node:
+    ros__parameters:
+      sensor_noise: 0.03
+      average_velocity: False
+      smoothing_alpha: 0.1
+
+  construct_safe_corridor:
+    ros__parameters:
+      number_of_boundary_points: 5
+      callback_frequency: 10 #Hz
+
+  train_rl:
+    ros__parameters:
+      rl_algorithm: "SAC"                       #The RL algorithm to use. Currently only SAC is supported.   
+      time_steps: 1000000
+      action_bounds: [-0.8, 0.8]                #The bounds for the actions that the RL algorithm can take. Either maximum velocity or maximum distance depending on action type.
+      seed: 1                                   #The seed for the random number generator
+      train: True                               #Determines if the RL algorithm should be trained or evaluated
+      time_step_length: 1.0                     #The length of a timestep in seconds  
+      reward_averaging: True                    #Determines if the reward should be averaged over the number of timesteps. Note can cause small error in pause time.
+      reward_samples_per_timestep: 3            #The number of samples to use for the reward per timestep if reward averaging is used
+      collision_footprint_factor: 1.5           #Parameter used to multiply the robot footprint to reset the simulation before a real collision occurs.
+      footprint_scale: 0.8                      #The scale of the footprint of the robot compared to the one used by NAV2. This is used for determining if there is a future collision.
+      grid_size: 0.1                            #The size of the grid to use for discrete plan actions
+      max_trial_timesteps: 40
+
+
+      ### REWARD FUNCTION PARAMETERS ###
+      reward_functions: ['path_traversal','social_force_sfm']
+      goal_reached:
+        goal_threshold: 0.7
+        reward: 1.0
+      collision:
+        reward: -3.0
+      proxemics:
+        min_reward: -3.0
+        max_reward: 0.0
+        distance_threshold: 0.85 
+      future_collision:
+        reward: -3.0
+        future_collision_distance: 0.5
+      max_timesteps:
+        reward: -1.0
+      path_traversal:
+        max_reward: 0.2                         #Scaling of the tanh. This max_reward also defines the min_reward as -max_reward
+        path_traversal_for_positive_reward: 0.2 #The NAV2 path distance the agents needs to reduce to get a reward in an interaction
+      agent_velocity_disturbance:
+        v_pref: 0.4                             #The preferred velocity of the agent. This is used to determine the reward for the agent velocity disturbance
+        max_reward: 0.0
+        min_reward: -1.0
+      outside_interaction_range:
+        max_reward: 1.0                         #The reward for the agent being outside the interaction range and traversing at least the path traversal distance
+        min_reward: -1.0                        #The reward for the agent being outside the interaction range and not traversing the path traversal distance
+        path_travel_positive_interaction: 2.0   #The NAV2 path distance the agents needs to reduce to get a reward in an interaction
+      social_force_sfm:
+        max_reward: 0.0
+        min_reward: -3.0
+        min_social_force: -3.0                  #The social disturbance the robot should receive the min_reward for. The more negative the value the less the robot is punished for distrubing agents [-inf 0]
+        lambda_: 2.0          
+        gamma_: 0.85                            #Parameter used to influence the cost of large head on velocities
+        n: 2.0                                  #Parameter influencing the influence of interaction direction on the directional change along normal n_ij
+        A: 4.5                                  #Multiplier for the output social force
+        n_prime: 3.0                            #Parameter influencing the influence of interaction direction on the deceleration along interaction direction t_ij
+        epsilon: 0.005                          #Parameter used to preffer overtaking on the right side
+
+      ### EVALUATION PARAMETERS ###
+      sim_name: 'Expert_RL_SFM_T1'             #The name of the simulation for plotting purposes
+      num_eval_per_scenario: 100               #The number of evaluations to perform per scenario
+      load_results_only_mode: False            #Determines if the super evaluation mode should be used. This will simply generate plots from data in the result file
+
+      ### INTERACTION PARAMETERS ###
+      interaction_range: 6.0                   #The interaction range from which the robot will check if there are agents in the vicinity that move towards it.
+      critical_interaction_range: 3.5          #The critical interaction range from which the robot will always apply the RL algorithm independent of the orientations and poses.
+      timesteps_before_switch_to_nav2: 5       #Number of timesteps before the agent switches to the nav2 planner if not in the interaction range
+      timesteps_before_interaction: 0          #Number of timesteps before the agent will check if its in the interaction range during training. 
+      timesteps_before_agents_in_range: 0      #Number of timesteps once in the interaction range that the future collision will find a future collision. Used when using use_constant_when_out_of_range is True  
+      reset_on_exit_interaction_range: False   #If set to true the simulation is reset when the robot leaves the interaction range. Else the NAV2 planner is used to navigate towards the goal.
+
+      ### EXPERT DEMONSTRATION PARAMETERS ###
+      use_expert_demonstrations: False         #Determines if the expert demonstrations should be used for training the RL algorithm. If train is false the expert policy is used for evaluation.
+
+      imitation_learning:
+        expert_class: 'Nav2Policy'             #The class of the expert demonstrations either Nav2Policy if the DWB planner is used or SocialForcePolicy if the social force model is used
+        imitation_algorithm: 'DAgger'          #The imitation learning algorithm to use for training the RL algorithm
+        expert_noise_std: 0.001                #The noise standard deviation to add to the expert demonstrations
+        expert_rollout_episodes: 200           #The number of episodes the expert demonstrations should be used for filling the replay buffer
+        dagger:
+          expert_time_steps: 5000              #The number of timesteps the expert demonstrations should be used for training the RL algorithm
+          rollout_round_min_episodes: 1        #The minimum number of episodes to use for the rollout
+          rollout_round_min_timesteps: 500     #The minimum number of timesteps to use for the rollout
+        
+      ### RL ALGORITHM PARAMETERS ###       
+      SAC:
+        save_model_path: "Expert_figure"
+        load_model_path: "Expert_figure/model_20000"                
+        load_model: False                                          
+
+        load_replay_buffer_path: "Expert_1_V7_Higher_Future_cost/replay_buffer_40000"
+        load_replay_buffer: False
+
+        # SAC SB3 related parameters
+        replay_buffer_size: 250000 
+        learning_starts: 0               
+        net_arch: [128, 128]
+        target_update_interval: 1
+        train_freq: 2                  
+        use_sde: False
+        sde_sample_freq: 4
+        use_sde_at_warmup: False
+        verbose: 1
+        batch_size:  16
+        ent_coef: 'auto_0.5'            
+        target_entropy: -4.0
+        gamma: 0.99                    
+        tau: 0.005                     
+        policy_lr: 0.0003
+        gradient_steps: 1
+        q_lr: 0.001
+        reward_scale: 1.0
+        save_model_interval: 10000
+        eval_freq: 2000
+
+      rl_node_manager:
+        # The rl node manager is used to describes state and utility nodes that are used 
+        # in the rl algorithm.
+        # The state nodes are inputs that are used as 'states' into the RL algorithm.
+        # Utility nodes are nodes that are used for utility functions like calculating 
+        # reward functions or other utility functions.
+        # The node names are used also to name the 
+        # The following nodes are independent of the rl algorithms:
+        # 1. nav2_input: can be used as a state node to give the robot an idea of the current speed
+        # 2. lidar: critical boundary points as described in the thesis are a compact 
+        # representation of the lidar scan.
+        # 3. agents: The position and velocity of agents in the environment w.r.t. the robots' frame
+        # 4. costmap: The costmap is used for various utilities.
+        # 5. footprint: The footprint of the robot is used for calculating collisions.
+        # 6. robot_odom: The odometry of the robot used for reward functions etc..
+        # 7. agents_global_frame: The position and velocity of agents w.r.t. the global frame
+        # 8. lidar_raw: The raw lidar scan in LaserScan format.
+
+
+        # When using different rl algorithms the required state and utility nodes are different.
+        # For nodes that have [required] it is necessary to have the node in the list of state
+        # or utility nodes in order to run.
+        # rl_pure_pursuit_controller::RlPurePursuitController has the following unique 
+        # node requirements:
+        # 1. [required] plan: The plan is used to determine 
+        # the model-based pure pursuit output and used as a reference point to learn a new waypoint.
+        # it is published on the /lookahead_pose topic.
+
+        
+        # dwb_core::DWBLocalPlanner has the following unique node requirements:
+        # 1. [required] plan: the plan is published on the /resampled_plan topic 
+        # and is the global plan resampled to rl_path_samples and rl_path_length. Also
+        # /resampled_plan_local can be used as a topic to have the plan in the local frame.
+        # This is necessary when using the force_waypoint_in_corridor utility.
+
+        # social_force_window_planner::SFWPlannerNode has the following unique node requirements:
+        # 1. [required] plan: the plan is published on the /resampled_plan topic
+        # and is the global plan resampled to rl_path_samples and rl_path_length. Also
+        # /resampled_plan_local can be used as a topic to have the plan in the local frame.
+        # This is necessary when using the force_waypoint_in_corridor utility.
+        # 2. [required for IL] sfm_control_point: The sfm_control_point is the model-based
+        # control point based on the social force model. It is used for imitation learning
+        # to generate some social behaviour as a starting point.
+        callback_frequency: 10 #Hz
+        state_nodes: ['nav2_input', 'lidar', 'agents']
+        utility_nodes: ['costmap','footprint','robot_odom','plan', 'agents_global_frame','lidar_raw']
+        costmap:
+          topic: 'cleaning_robot/global_costmap/costmap'
+          type: 'OccupancyGrid'
+          callback: 'costmap_callback'
+          
+        footprint:
+          topic: 'cleaning_robot/local_costmap/published_footprint'
+          type: 'PolygonStamped'
+          callback: 'footprint_callback'
+
+        robot_odom:
+          topic: 'cleaning_robot/odometry'
+          type: 'Odometry'
+          callback: 'odometry_callback'
+
+        nav2_input:
+          topic: 'cleaning_robot/cmd_vel_nav'
+          type: 'Twist'
+          callback: 'nav2_input_callback'
+
+        plan:
+          topic: 'cleaning_robot/lookahead_pose' #'resampled_plan_local'
+          type: 'PathWithLength'
+          callback: 'plan_with_length_callback'
+
+        lidar:
+          topic: 'cleaning_robot/critical_points'
+          type: 'PointArray'
+          callback: 'lidar_point_array_callback'
+
+        lidar_raw:
+          topic: 'cleaning_robot/scan'
+          type: 'LaserScan'
+          callback: 'lidar_raw_callback'
+        agents:
+          topic: '/agents'
+          type: 'People'
+          callback: 'agents_callback'
+          
+        agents_global_frame:
+          topic: '/agents_global_frame'
+          type: 'People'
+          callback: 'agents_callback_global'
+        
+        sfm_control_point:
+          topic: 'cleaning_robot/robot_local_plan'
+          type: 'Path'
+          callback: 'sfm_control_point_callback'
+
+        
+
+############## SHARED NODE PARAMETERS ###############
+# There are some parameters that are shared to different nodes. 
+
+/**:
+  ros__parameters:
+    # General parameters
+    namespace: "test"
+    # The namespace can be used to give most topics a prefix. However, if this is changed
+    # the XML_BT for the dynamical agents needs to be adjusted by hand due to a bug in 
+    # the reading of the yaml parameters with the BT.
+    use_namespace: False
+    use_sim_time: True
+    world: 'office_bigger'
+    log_level: 'error'
+    use_teleop: True
+    map_yaml_file: 'maps/office_bigger/office_map'
+
+
+    #The utility_nodes options are 'publish_agents_velocity','construct_safe_corridor'
+    # Publish_agents_velocity: Gets the velocity of all the agents and publishes it on /agents topic
+    # Construct_safe_corridor: Constructs a safe corridor for the robot to navigate through publishes on /critical_points topic
+    utility_nodes_to_launch: ['publish_agents_velocity','construct_safe_corridor'] 
+
+    # Construct safe corridor settings also necessary for the RL algorithm
+    use_constant_for_distant_measurements: True
+    max_lidar_distance: 6.0
+    force_waypoint_in_corridor: True          # Can only be used when plan is in the local frame
+
+    # Dynamic Agents Parameters
+    laser_enable_agents: False
+
+    # General RL settings shared between nodes
+    use_rl: True
+    use_social_zone: True                     #Determines if the agents should use the social zone for the social force model around the robot
+    use_social_zone_robot: True               #Determines if the robot should use the social zone for the social force model around the other agents
+    
+    # The output of the RL algorithm. There are three options:
+    # 1. plan: The RL algorithm will output a plan that the robot should follow. Can also be 
+    # a single pose as required for the RlPurePursuitController.
+    # 3. diff_drive: The RL algorithm will output a diff drive action that the robot should follow.
+    rl_action_output: "plan"        
+    # Plan parameters. The rl_path_length is the length at which the global plan is pruned.
+    # rl_path_samples are the number of uniformly sampled point along rl_path_length that
+    # are used to output the same number of rl output samples.
+    # Only applicable for DWBLocalPlanner and SFWPlannerNode as RlPurePursuitController always uses
+    # a single sample on the path.
+    rl_path_length: 1.0
+    rl_path_samples: 1
+
+    # The low-level controller to use for the RL algorithm.
+    # The behaviour tree file is given by the part after :: for example DWBLocalPlanner.xml
+    # There are three options for the low-level controller:
+    # 1. dwb_core::DWBLocalPlanner
+    # 2. social_force_window_planner::SFWPlannerNode
+    # 3. rl_pure_pursuit_controller::RlPurePursuitController
+    rl_controller_alg: "rl_pure_pursuit_controller::RlPurePursuitController"
+  
+    # Navigation settings
+    use_slam: False
+    slam_params_file: 'config/mapper_params_online_async.yaml'
+    slam_map: 'maps/custom_office/office_map'
+
+    nav2_params_file_robot: 'config/nav2_params_cleaning_robot.yaml'
+
+    autostart: True
+    use_respawn: False
+
+
+  # Gazebo related parameters
+    width: 0.2
+    length: 0.2
+    height: 0.13
+    
+    # Technically there can be multiple robots in the simulation. However currently only one
+    # robot is used in the utilities. For multi-robot cases the framework needs to be be 
+    # extended.
+    robot_names: 
+      - "cleaning_robot"
+    robot_frame: "base_link"
+    
+     # The names of other entities in the environment. The names can be anything however remember
+     # to create an xml file with navigate_through_poses_<agent_name>.xml for each agent.
+    agent_names: 
+     - "agent1"
+     - "agent2"
+
+     
+    ######### TASK GENERATOR PARAMETERS #########
+    # The task generator defines the path generation for the robot and agents.
+    # For the robot the task generator we define a random starting position range within [min_pos, max_pos]
+    # and a random orientation using a quaternion definition. furthermore a goal location is defined
+    # that the robot should reach.
+    # Agents in the environment are intialized with the same random starting pose. However,
+    # the agents can have sub goals that need to be reached to create realistic human-like behaviour.
+    # These are given by a list of goals.
+    # Each task utilizes the names of the robot and agents as defined in the robot_names and agent_names.
+
+
+    TaskGenerator:
+      # Tasks that should be used for the training or evaluation. The first task that is trained
+      # on is given by the task_number which is the index of the task_list. After the first task
+      # the next task is randomly selected from the task_list.
+
+      init_task_number: 0
+      task_list: ['corridor_passing_south','combination_crossing_passing'] 
+
+      # The taskgenerator also allows for custom parameters for each task.
+      param_change_list:
+        corridor_passing_south: 
+          #FollowPath.social_weight: 0.0
+          FollowPath.distance_weight: 1.0
+        combination_crossing_passing:
+          #FollowPath.social_weight: 0.0
+          FollowPath.distance_weight: 1.0
+
+      corridor_passing_south:
+        cleaning_robot:
+          position:
+            x_pose: [2.0, 2.5]
+            y_pose: [1.2, 1.7]
+            z_pose: [0.04, 0.04]
+          orientation:
+            x: [0.0, 0.0]
+            y: [0.0, 0.0]
+            z: [0.9, 1.0]
+            w: [0.0, 0.0]
+          goals:
+            - "g0"
+          g0:
+            x_pose: -4.738164
+            y_pose: 0.88985
+
+        agent1:
+          position:
+            x_pose: [-5.2, -4.5]
+            y_pose: [1.2, 2.0]
+            z_pose: 0.01
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+          goals:
+            - "g0"
+            - "g1"
+           
+          g0:
+            x_pose: -3.047561
+            y_pose: 0.7
+          g1:
+            x_pose: 4.514920
+            y_pose: 0.7
+        agent2:
+          position:
+            x_pose: [4.5, 4.5]
+            y_pose: [-1.2, -1.2]
+            z_pose: 0.01
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 1.0
+            w: 1.0
+          goals:
+            - "g0"
+
+          g0:
+            x_pose: 4.4
+            y_pose: -1.1
+
+      combination_crossing_passing:
+        cleaning_robot:
+          position:
+            x_pose: [-5.4, -5.2]
+            y_pose: [1.2, 1.3]
+            z_pose: [0.04, 0.04]
+          orientation:
+            x: [0.0, 0.0]
+            y: [0.0, 0.0]
+            z: [0.0, 0.0]
+            w: [0.9, 1.0]
+          goals:
+            - "g0"
+          g0:
+            x_pose: 0.38164
+            y_pose: 0.88985
+
+        agent1:
+          position:
+            x_pose: [3.5, 3.7]
+            y_pose: [1.2, 1.7]
+            z_pose: 0.01
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 1.0
+            w: 0.0
+          goals:
+            - "g0"
+            - "g1"
+           
+          g0:
+            x_pose: 3.5
+            y_pose: 1.7
+          g1:
+            x_pose: -4.514920
+            y_pose: 1.7
+        agent2:
+          position:
+            x_pose: [-3.3, -3.3]
+            y_pose: [-0.1, -0.0]
+            z_pose: 0.01
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 1.0
+            w: 1.0
+          goals:
+            - "g0"
+          g0:
+            x_pose: -4.0
+            y_pose: 2.4
+
+
+                              
+    
+    # Metrics from literature that can be used to evalaute the social awareness of the robot
+    result_file: 'metrics.txt'
+
+    metrics:
+      # Pérez-Higueras, N., Caballero, F. & Merino, L. 
+      # Teaching Robot Navigation Behaviors to Optimal RRT Planners. 
+      # Int.J. of Soc. Robotics 10, 235–249 (2018). https://doi.org/10.1007/s12369-017-0448-1
+      time_to_reach_goal: true
+      path_length: true
+      cumulative_heading_changes: true
+      avg_distance_to_closest_person: true
+      minimum_distance_to_people: true
+      intimate_space_intrusions: true
+      personal_space_intrusions: true
+      social_space_intrusions: true
+      group_intimate_space_intrusions: false
+      group_personal_space_intrusions: false
+      group_social_space_intrusions: false
+
+      
+      # N. Tsoi et al., "SEAN 2.0: Formalizing and Generating Social Situations
+      # for Robot Navigation," in IEEE Robotics and Automation Letters, vol. 7,
+      # no. 4, pp. 11047-11054, Oct. 2022, doi: 10.1109/LRA.2022.3196783.
+      completed: false
+      minimum_distance_to_target: false
+      maximum_distance_to_people: true
+      final_distance_to_target: false
+      robot_on_person_collision: true
+      person_on_robot_collision: true
+      time_not_moving: true
+      
+      # SocNavBench: A Grounded Simulation Testing Framework for Evaluating Social Navigation
+      #ABHIJAT BISWAS, ALLAN WANG, GUSTAVO SILVERA, AARON STEINFELD, and HENNY AD-MONI, Carnegie Mellon University
+      avg_robot_linear_speed: true
+      avg_robot_angular_speed: false
+      avg_acceleration: true
+      avg_overacceleration: true
+      
+      # Learning a Group-Aware Policy for Robot Navigation
+      # Kapil Katyal ∗1,2 , Yuxiang Gao ∗2 , Jared Markowitz 1 , Sara Pohland 3 , Corban Rivera 1 , I-Jeng Wang 1 , Chien-Ming Huang 2 
+      avg_pedestrian_velocity: true
+      avg_closest_pedestrian_velocity: true
+
+      # Metrics for the Socially-Aware Navigation Framework
+      avg_social_force: true
+      avg_goal_reward: true
+      max_social_force: true
+      sum_social_force: true
+      std_sum_social_force: true
+      std_dev_cumulative_heading_changes: true
+      std_avg_robot_linear_speed: true
+      std_minimum_distance_to_people: true
+      std_avg_robot_acceleration: true

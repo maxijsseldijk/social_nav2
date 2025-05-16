@@ -1,0 +1,5 @@
+<library path="rl_pure_pursuit_controller">
+	<class name="rl_pure_pursuit_controller::RlPurePursuitController" type="rl_pure_pursuit_controller::RlPurePursuitController" base_class_type="nav2_core::Controller">
+	  <description>rl_pure_pursuit_controller</description>
+	</class>
+</library>

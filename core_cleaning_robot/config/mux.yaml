@@ -1,0 +1,47 @@
+# Input topics handled/muxed.
+# For each topic:
+# - name: name identifier to select the topic
+# - topic   : input topic of geometry_msgs::Twist type
+# - timeout : timeout in seconds to start discarding old messages, and use 0.0 speed instead
+# - priority: priority in the range [0, 255]; the higher the more priority over other topics
+/**:
+  ros__parameters:
+    topics:
+      joypad:
+        topic   : cmd_vel_joy
+        timeout : 0.5
+        priority: 100
+      keyboard:
+        topic   : cmd_vel_key
+        timeout : 0.5
+        priority: 80
+      control:
+        topic   : cmd_vel_ctrl
+        timeout : 0.5
+        priority: 10
+      rl:
+        topic   : cmd_vel_rl
+        timeout : 0.5
+        priority: 50
+
+    # Locks to stop the twist mux inputs.
+    # For each lock:
+    # - name    : name identifier to select the topic
+    # - topic   : input topic that provides the lock; it must be of type std_msgs::Bool
+    # - timeout : == 0.0 -> not used
+    #              > 0.0 -> the lock is supposed to published at a certain frequency in order
+    #                       to detect that the publisher is alive; the timeout in seconds allows
+    #                       to detect that, and if the publisher dies, then the lock is enabled
+    # - priority: priority in the range [0, 255], so all the topics with priority lower than it
+    #             are stopped/disabled
+
+    locks:
+      pause:
+        topic   : /pause_motion
+        timeout : 0.5
+        toggle  : True
+        priority: 200
+   
+
+    # Publication rate for zero twist
+    rate: 20.0

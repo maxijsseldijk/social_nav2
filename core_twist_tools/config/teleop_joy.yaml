@@ -1,0 +1,8 @@
+
+/**:
+  ros__parameters:
+    max_linear_speed: 1.0 # Maximum speed in m/s
+    max_angular_speed: 2.0 # Maximum steering angle in radians
+    cmd_rate: 10.0 # Command publication rate
+    pause_button: 4 # Joy Pause button number, i.e., Joy.button[pause_button]
+    cont_cmd_axes: 2 # Joy Continuous command axis, i.e., Joy.axes[cont_cmd_axes]

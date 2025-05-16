@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro"  name="$(arg name)">
+
+    <xacro:arg name="name" default="agent"/>
+
+    <xacro:arg name="height" default="0.15"/>
+    <xacro:arg name="radius" default="0.15"/>
+    <xacro:arg name="laser_enable"  default="false"/>
+    <xacro:arg name="collide_bitmask" default="0x01"/>
+
+
+    <xacro:include filename="robot_core.xacro" />
+    <xacro:include filename="lidar.xacro" />
+
+
+    
+</robot>

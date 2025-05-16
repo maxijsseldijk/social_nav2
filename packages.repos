@@ -1,0 +1,25 @@
+repositories:
+    people:
+        type: git
+        url: https://github.com/wg-perception/people
+        version: ros2
+
+    nav_social_plugin:
+        type: git
+        url: https://github.com/robotics-upo/nav2_social_costmap_plugin
+        version: humble
+
+    imitation:
+        type: git
+        url: https://github.com/maxijsseldijk/imitation
+        version: master
+        
+    lightsfm:
+        type: git
+        url: https://github.com/robotics-upo/lightsfm.git
+        version: master
+
+    social_force_window:
+        type: git
+        url: https://github.com/maxijsseldijk/social_force_window_planner.git
+        version: ros2

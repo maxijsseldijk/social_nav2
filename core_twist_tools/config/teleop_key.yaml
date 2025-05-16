@@ -1,0 +1,6 @@
+
+/**:
+  ros__parameters:
+    max_linear_speed: 1.0 # Maximum speed in meters per seconds
+    max_angular_speed: 2.0 # Maximum steering angle in radians per seconds
+    cmd_rate: 10.0 # Command publication rate

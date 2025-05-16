@@ -1,0 +1,7 @@
+
+/**:
+  ros__parameters:
+    dev: /dev/input/joypad #  Joystick device
+    deadzone: 0.01 #Amount by which the joystick has to move before it is considered to be off-center.
+    autorepeat_rate: 0.0 # Auto repeat rate, 0.0 (disabled)
+    coalesce_interval: 0.01 # Axis events that are received within coalesce_interval (seconds) of each other are sent out in a single ROS message.

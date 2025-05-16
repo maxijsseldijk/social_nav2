@@ -1,0 +1,56 @@
+# Git
+.git
+.gitignore
+.github
+**/.gitkeep
+
+# Docker
+.docker
+**/Dockerfile
+**/.dockerignore
+
+# VS Code
+.vscode
+
+# Python
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.Python
+**/.env
+**/.venv
+**/pip-log.txt
+**/.tox
+**/.coverage
+**/.coverage.*
+**/.cache
+**/nosetests.xml
+**/coverage.xml
+**/*.cover
+**/*.log
+
+# ROS specific
+**/build/
+**/install/
+**/log/
+**/.catkin_workspace
+**/.catkin_tools
+**/COLCON_IGNORE
+
+# Temp files
+**/*.swp
+**/*.swo
+**/*~
+
+# OS specific
+.DS_Store
+**/.DS_Store
+**/Thumbs.db
+
+# Build artifacts
+**/*.o
+**/*.so
+**/*.a
+**/*.dll
+**/*.dylib

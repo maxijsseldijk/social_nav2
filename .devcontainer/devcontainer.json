@@ -1,0 +1,66 @@
+{
+    "name": "ROS2 Humble",
+    "build": {
+        "dockerfile": "../Dockerfile",
+        "context": ".."
+    },
+    "runArgs": [
+        //"--runtime=nvidia",
+        //"--gpus=all",
+        "--cap-add=SYS_PTRACE" // Allows the container to trace processes using ptrace system call
+        // "--security-opt=seccomp=unconfined", // Disables seccomp security profiles for the container
+        //"--ipc=host", // Shares the host's IPC namespace with the container
+        // "--network=host" // Shares the host's network namespace with the container
+        // "--pid=host", // Shares the host's PID namespace with the container
+        // "--privileged", // Gives the container full access to the host's devices and allows it to run with root privileges
+    ],
+    "workspaceMount": "source=${localWorkspaceFolder},target=/docker_ws/src,type=bind",
+    "workspaceFolder": "/docker_ws/src",
+    "containerEnv": {
+        "DISPLAY": "${localEnv:DISPLAY}",
+        "QT_X11_NO_MITSHM": "1",
+        "XAUTHORITY": "$(xauth info | grep 'Authority file' | awk '{ print $3 }')"
+    },
+    "mounts": [
+        {
+            "source": "/tmp/.X11-unix",
+            "target": "/tmp/.X11-unix",
+            "type": "bind"
+        },
+        {
+            "source": "${localEnv:XAUTHORITY}",
+            "target": "/root/.Xauthority",
+            "type": "bind"
+        },
+        {
+            "source": "${localEnv:HOME}${localEnv:USERPROFILE}/.bash_history",
+            "target": "/home/developer/.bash_history",
+            "type": "bind"
+        }
+    ],
+    "customizations": {
+        "vscode": {
+            "settings": {},
+            "extensions": [
+                "mhutchie.git-graph",
+                "eamodio.gitlens",
+                "donjayamanne.githistory",
+                "ms-python.vscode-pylance",
+                "ms-python.python",
+                "ms-vscode.cpptools",
+                "ms-vscode.cpptools-extension-pack",
+                "ms-python.tensorboard",
+                "ms-azuretools.vscode-docker",
+                "ms-iot.vscode-ros" //,
+                //"ms-python.flake8",
+                //"zachflower.uncrustify",
+                //"ms-python.autopep8",
+                //"xaver.clang-format"
+            ]
+        }
+    },
+    //"features": {
+    //	"ghcr.io/devcontainers/features/nvidia-cuda:1": {}
+    //},
+    "postCreateCommand": "bash -c 'for dir in /docker_ws/src/*; do git config --global --add safe.directory \"$dir\"; done && vcs import < /tmp/packages.repos && cd lightsfm && sudo make && sudo make install && cd ../.. && sudo apt-get update && rosdep update && rosdep install --from-paths src --ignore-src -y --rosdistro ${ROS_DISTRO} && source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build --symlink-install'"
+}
