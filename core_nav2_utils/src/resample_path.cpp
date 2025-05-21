@@ -1,4 +1,4 @@
-#include "core_nav2_navigation/resample_path.hpp"
+#include "core_nav2_utils/resample_path.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -258,7 +258,7 @@ std::vector<std::array<double, 2>> ResamplePath::resample_uniform_distance(
     }
 
     // The leftover distance is the distance that was not covered by the resampled points
-    // This also includes the distance between the last resampled point 
+    // This also includes the distance between the last resampled point
     // and the next point in the original path.
     remaining_distance = total_distance - static_cast<int>(num_points_in_segment) * segment_length;
   }
@@ -343,6 +343,11 @@ std::pair<core_custom_messages::msg::PathWithLength, int> ResamplePath::processP
   const nav_msgs::msg::Path & smac_path, double rl_path_length_, int rl_path_samples_,
   const std::string & global_frame_)
 {
+  // Check if the path is empty
+  if (smac_path.poses.empty()) {
+    RCLCPP_ERROR(logger_, "Received empty path. Returning empty path.");
+    return {core_custom_messages::msg::PathWithLength(), 0};
+  }
   auto total_path_length = nav2_util::geometry_utils::calculate_path_length(smac_path);
 
   auto path_list = convertPathToList(smac_path);

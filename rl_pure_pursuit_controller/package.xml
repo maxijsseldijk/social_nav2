@@ -24,6 +24,7 @@
   <depend>tf2</depend>
   <depend>tf2_ros</depend>
   <depend>core_custom_messages</depend>
+  <depend>core_nav2_utils</depend>
 
   <exec_depend>xterm</exec_depend>
   <test_depend>ament_lint_auto</test_depend>

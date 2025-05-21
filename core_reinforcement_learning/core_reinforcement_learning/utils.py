@@ -6,7 +6,7 @@ import numpy as np
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Vector3Stamped
 from transforms3d.euler import quat2euler
-from scipy.spatial import ConvexHull, Delaunay, QhullError
+from scipy.spatial import ConvexHull, Delaunay
 
 
 def convert_twist_to_vector3(msg: Odometry) -> Vector3Stamped:
@@ -97,13 +97,13 @@ def get_safe_corridor_vertices(critical_points: np.ndarray) -> np.ndarray:
 
     try:
         ConvexHull(vertices)
-    except QhullError:
+    except Exception:
         return None
 
     return np.array(vertices)
 
 
-def in_convex_hull(waypoint: np.ndarray, vertices: np.ndarray) -> bool:
+def in_convex_hull(waypoint: np.ndarray, vertices: np.ndarray) -> np.ndarray:
     """
     Check if the waypoint is inside the convex hull.
 
@@ -151,6 +151,43 @@ def move_point_to_convex_hull(point: np.ndarray, vertices: np.ndarray) -> np.nda
             closest_point = proj_point
 
     return closest_point
+
+
+def create_offset_critical_points(critical_points: np.ndarray, offset: float) -> np.ndarray:
+    """
+    Create an offset to the critical points based on the self.corridor_safety_margin.
+
+    Note that the offset is applied to the critical points. This means that depending
+    on the orientation of the critical points, the safe corridor may shrink differently.
+
+    Args:
+    ----
+        critical_points (np.ndarray): The critical points to be offset.
+        offset (float): The offset to be applied to the critical points must be positive..
+
+    Returns
+    -------
+        np.ndarray: The offset critical points.
+
+    """
+    if offset < 0:
+        raise ValueError("Offset must be positive.")
+
+    if float(offset) == 0.0:
+        return critical_points
+
+    offset_critical_points = np.zeros_like(critical_points)
+    for i, point in enumerate(critical_points):
+        # Only offset if the point does not change sign
+        if point[0]**2 + point[1]**2 <= offset**2:
+            offset_critical_points[i] = point
+            continue
+        angle = np.arctan2(point[1], point[0])
+
+        offset_critical_points[i][0] = point[0] - offset * np.cos(angle)
+        offset_critical_points[i][1] = point[1] - offset * np.sin(angle)
+
+    return offset_critical_points
 
 
 def project_point_to_line_segment(point: np.ndarray, start: np.ndarray,

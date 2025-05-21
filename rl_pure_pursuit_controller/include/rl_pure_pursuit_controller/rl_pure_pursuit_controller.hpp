@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "core_custom_messages/msg/path_with_length.hpp"
+#include "core_nav2_utils/resample_path.hpp"
 #include "geometry_msgs/msg/pose2_d.hpp"
 #include "nav2_core/controller.hpp"
 #include "nav2_util/geometry_utils.hpp"
@@ -171,8 +172,10 @@ protected:
     carrot_pub_;
   std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<core_custom_messages::msg::PathWithLength>>
     carrot_plan_pub_;
+  std::shared_ptr<nav2_rl::ResamplePath> resample_path_;
   rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr rl_plan_sub_;
-
+  std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Path>>
+    global_path_pub_;
   rclcpp::Time timestamp_rl_path_request_;
   rclcpp::Time timestamp_rl_path_received_;
   double global_path_length_;

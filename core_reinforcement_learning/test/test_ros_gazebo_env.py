@@ -185,6 +185,7 @@ class TestGazeboEnv(unittest.TestCase):
             'timesteps_before_interaction': FakeParameter(5),
             'timesteps_before_agents_in_range': FakeParameter(3),
             'use_constant_for_distant_measurements': FakeParameter(True),
+            'corridor_safety_margin': FakeParameter(0.1),
             'max_lidar_distance': FakeParameter(10.0),
             'footprint_scale': FakeParameter(1.0),
             'TaskGenerator': {

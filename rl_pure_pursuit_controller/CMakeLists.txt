@@ -17,6 +17,7 @@ find_package(std_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(core_custom_messages REQUIRED)
+find_package(core_nav2_utils REQUIRED)
 
 nav2_package()
 set(CMAKE_CXX_STANDARD 17)
@@ -36,6 +37,7 @@ set(dependencies
   tf2
   tf2_geometry_msgs
   core_custom_messages
+  core_nav2_utils
 )
 
 set(library_name rl_pure_pursuit_controller)

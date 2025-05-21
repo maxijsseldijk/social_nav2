@@ -24,6 +24,7 @@ from core_reinforcement_learning.rl_node_manager import RlSubscriptionManager
 from core_reinforcement_learning.utils import (get_transform_angle,
                                                in_convex_hull,
                                                get_safe_corridor_vertices,
+                                               create_offset_critical_points,
                                                move_point_to_convex_hull)
 from core_reinforcement_learning.world_interact_node import PauseSimulation, ResetSimulation
 
@@ -855,6 +856,8 @@ class GazeboEnv(BaseClassEnv):
             'max_lidar_distance').value
         self.force_waypoint_in_corridor = self.node.get_parameter(
             'force_waypoint_in_corridor').value
+        self.corridor_safety_margin = self.node.get_parameter(
+            'corridor_safety_margin').value
 
         # Footprint parameters
         self.footprint_from_robot_frame = None
@@ -1359,6 +1362,15 @@ class GazeboEnv(BaseClassEnv):
 
         last_robot_odom_list = self.rl_io_manager.last_robot_odom.flatten().tolist()
         last_plan_list = self.rl_io_manager.last_plan.flatten().tolist()
+        if self.rl_io_manager.check_if_in_all_nodes_list(['last_global_plan']):
+            last_global_plan_list = self.rl_io_manager.last_global_plan.flatten().tolist()
+        # For now hardcode multiple plan points equals finding furthest point
+        # in the plan
+            if len(last_global_plan_list) > 2:
+                last_global_plan_list = self._get_maximum_safe_plan_point(
+                    self.rl_io_manager.last_global_plan.reshape(-1, 2))
+                if last_global_plan_list is not None:
+                    last_plan_list = last_global_plan_list.flatten().tolist()
 
         future_collision = False
 
@@ -1415,6 +1427,28 @@ class GazeboEnv(BaseClassEnv):
 
         return future_collision
 
+    def _get_maximum_safe_plan_point(self, plan: np.ndarray) -> np.ndarray:
+        critical_points = self.get_critical_points_from_lidar()
+        vertices = get_safe_corridor_vertices(critical_points)
+
+        last_point_in_hull = None
+        if vertices is not None and len(vertices) >= 3:
+            hull = ConvexHull(vertices)
+            hull_vertices = vertices[hull.vertices]
+
+            point_in_hull = in_convex_hull(plan, hull_vertices)
+
+            if np.all(point_in_hull) is False and np.any(point_in_hull):
+                last_point_in_hull = plan[np.where(
+                    point_in_hull is False)[0][0] - 1]
+            elif np.all(point_in_hull):
+                last_point_in_hull = plan[-1]
+            else:
+                # All points are outside the hull
+                last_point_in_hull = None
+
+        return last_point_in_hull
+
     def _publish_safe_corridor_rviz(self, vertices: np.ndarray):
         """
         Publish the safe corridor to RViz.
@@ -1456,12 +1490,9 @@ class GazeboEnv(BaseClassEnv):
         """
         # In case max_lidar_distance is both the x and y coordinate. This
         # is not a valid point, but a filler point this needs to be removed.
-        raw_crit_points = self.rl_io_manager.last_lidar.reshape(-1, 2)
+        critical_points = self.get_critical_points_from_lidar()
 
-        mask = ~np.all(raw_crit_points == self.max_lidar_distance, axis=1)
-        critical_points = raw_crit_points[mask]
         vertices = get_safe_corridor_vertices(critical_points)
-
         if vertices is not None and len(vertices) >= 3:
 
             self._publish_safe_corridor_rviz(vertices)
@@ -1474,6 +1505,16 @@ class GazeboEnv(BaseClassEnv):
 
                 waypoint = move_point_to_convex_hull(waypoint, vertices)
         return waypoint
+
+    def get_critical_points_from_lidar(self):
+        raw_crit_points = self.rl_io_manager.last_lidar.reshape(-1, 2)
+        mask = ~np.all(raw_crit_points == self.max_lidar_distance, axis=1)
+        critical_points = raw_crit_points[mask]
+        # Move the points closer to the robot to make a smaller corridor for safety
+        critical_points = create_offset_critical_points(
+            critical_points, self.corridor_safety_margin)
+
+        return critical_points
 
     def step(self, action: np.ndarray) -> list[np.ndarray, np.ndarray, np.ndarray]:
         """
@@ -1543,7 +1584,7 @@ class GazeboEnv(BaseClassEnv):
 
         if terminated or truncated:
             self.node.get_logger().error(
-                f"done at trial step {self.trial_time_step}")
+                f"done at trial step {self.trial_time_step} reason: {done_reason}")
             self.trial_time_step = 1
         else:
             self.trial_time_step += 1
@@ -1592,7 +1633,6 @@ class GazeboEnv(BaseClassEnv):
             terminated, truncated, done_reason, in_interaction_range = self._is_done(
                 future_collision)
             if not self.train:
-                # if done_reason != "future_collision" else "Not Done"
                 info['done_reason'].append(done_reason)
             else:
                 info['done_reason'].append(done_reason)

@@ -3,13 +3,13 @@
 #include <memory>
 #include <string>
 
-#include "core_nav2_navigation/resample_path.hpp"
+#include "core_nav2_utils/resample_path.hpp"
 #include "dwb_core/dwb_local_planner.hpp"
 #include "nav2_core/controller.hpp"
 #include "nav2_core/goal_checker.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "social_force_window_planner/sfw_planner_node.hpp"
 #include "rl_pure_pursuit_controller/rl_pure_pursuit_controller.hpp"
+#include "social_force_window_planner/sfw_planner_node.hpp"
 #include "std_msgs/msg/bool.hpp"
 
 namespace nav2_rl_local_planner

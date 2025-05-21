@@ -33,6 +33,7 @@ find_package(dwb_msgs REQUIRED)
 find_package(dwb_core REQUIRED)
 find_package(social_force_window_planner REQUIRED)
 find_package(rl_pure_pursuit_controller REQUIRED)
+find_package(core_nav2_utils REQUIRED)
 
 
 # Include Cpp "include" directory
@@ -66,6 +67,7 @@ set(dependencies
   dwb_core
   social_force_window_planner
   rl_pure_pursuit_controller
+  core_nav2_utils
 )
 
 set(library_name nav2_rl_local_planner)
@@ -86,7 +88,6 @@ endif()
 
 add_library(${library_name} SHARED
   src/rl_local_planner.cpp
-  src/resample_path.cpp
 
 )
 

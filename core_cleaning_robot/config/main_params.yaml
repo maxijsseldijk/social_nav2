@@ -203,6 +203,11 @@
           type: 'PathWithLength'
           callback: 'plan_with_length_callback'
 
+        global_plan:
+          topic: 'cleaning_robot/pure_pursuit_plan'
+          type: 'Path'
+          callback: 'global_plan_callback'
+
         lidar:
           topic: 'cleaning_robot/critical_points'
           type: 'PointArray'
@@ -255,7 +260,8 @@
     # Construct safe corridor settings also necessary for the RL algorithm
     use_constant_for_distant_measurements: True
     max_lidar_distance: 6.0
-    force_waypoint_in_corridor: True          # Can only be used when plan is in the local frame
+    force_waypoint_in_corridor: False          # Can only be used when plan is in the local frame
+    corridor_safety_margin: 0.30
 
     # Dynamic Agents Parameters
     laser_enable_agents: False

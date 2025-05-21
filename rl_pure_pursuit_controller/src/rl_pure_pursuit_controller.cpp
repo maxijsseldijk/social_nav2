@@ -48,6 +48,9 @@ void RlPurePursuitController::configure(
   carrot_pub_ = node->create_publisher<geometry_msgs::msg::PointStamped>("lookahead_pose_rviz", 1);
   carrot_plan_pub_ =
     node->create_publisher<core_custom_messages::msg::PathWithLength>("lookahead_pose", 1);
+  global_path_pub_ = node->create_publisher<nav_msgs::msg::Path>("pure_pursuit_plan", 1);
+
+  resample_path_ = std::make_shared<nav2_rl::ResamplePath>(logger_);
 
   rl_plan_sub_ = node->create_subscription<nav_msgs::msg::Path>(
     namespace_ + "/rl_local_plan", 1, [this](const nav_msgs::msg::Path::SharedPtr msg) {
@@ -89,6 +92,7 @@ void RlPurePursuitController::cleanup()
     plugin_name_.c_str());
   carrot_pub_.reset();
   carrot_plan_pub_.reset();
+  global_path_pub_.reset();
 }
 
 void RlPurePursuitController::activate()
@@ -100,6 +104,7 @@ void RlPurePursuitController::activate()
     plugin_name_.c_str());
   carrot_pub_->on_activate();
   carrot_plan_pub_->on_activate();
+  global_path_pub_->on_activate();
   auto node = node_.lock();
 }
 
@@ -112,6 +117,7 @@ void RlPurePursuitController::deactivate()
     plugin_name_.c_str());
   carrot_pub_->on_deactivate();
   carrot_plan_pub_->on_deactivate();
+  global_path_pub_->on_deactivate();
 }
 
 std::unique_ptr<geometry_msgs::msg::PointStamped> RlPurePursuitController::createCarrotMsg(
@@ -166,7 +172,7 @@ geometry_msgs::msg::TwistStamped RlPurePursuitController::computeVelocityCommand
 
   double linear_vel, angular_vel;
 
-  // If the goal pose is in front of the robot then compute the velocity using the pure pursuit algorithm
+  // If the goal pose is in front of the robot then compute the velocity using the pure pursuit
   // else rotate with the max angular velocity until the goal pose is in front of the robot
   if (rl_carrot_pose.pose.position.x > 0) {
     auto curvature = 2.0 * rl_carrot_pose.pose.position.y /
@@ -232,7 +238,8 @@ nav_msgs::msg::Path RlPurePursuitController::transformGlobalPlan(
     return transformed_pose;
   };
 
-  // Transform the near part of the global plan into the robot's frame of reference.
+  // Transform the near part of the global plan into the robot's frame of
+  // reference.
   nav_msgs::msg::Path transformed_plan;
   std::transform(
     transformation_begin, transformation_end, std::back_inserter(transformed_plan.poses),
@@ -240,13 +247,19 @@ nav_msgs::msg::Path RlPurePursuitController::transformGlobalPlan(
   transformed_plan.header.frame_id = costmap_ros_->getBaseFrameID();
   transformed_plan.header.stamp = robot_pose.header.stamp;
 
-  // TODO create function that trims the plan to a few select points that can
-  // be used in the RL algorithm.
-
   // Remove the portion of the global plan that we've already passed so we don't
   // process it on the next iteration (this is called path pruning)
   global_plan_.poses.erase(begin(global_plan_.poses), transformation_begin);
 
+  // Resample path to have an uniform distance between points
+  int nsamples = 100;
+  auto [uniform_path_msg, numberOfPoses] = resample_path_->processPath(
+    transformed_plan, max_costmap_extent, nsamples, transformed_plan.header.frame_id);
+  // Convert the PathWithLength message to a Path as we do not need the length
+  // information
+  nav_msgs::msg::Path transformed_plan_;
+  transformed_plan_.header = transformed_plan.header;
+  transformed_plan_.poses = transformed_plan.poses;
   // Calculate the total path length
   double total_path_length = nav2_util::geometry_utils::calculate_path_length(global_plan_);
 
@@ -263,10 +276,10 @@ nav_msgs::msg::Path RlPurePursuitController::transformGlobalPlan(
       logger_, "Added distance to first pose: %f, Total path length: %f", distance_to_first_pose,
       total_path_length);
   }
-
   global_path_length_ = total_path_length;  // Make it available to publish to the rl script
+  global_path_pub_->publish(transformed_plan_);
 
-  if (transformed_plan.poses.empty()) {
+  if (transformed_plan_.poses.empty()) {
     throw nav2_core::PlannerException("Resulting plan has 0 poses in it.");
   }
 

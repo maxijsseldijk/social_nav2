@@ -312,6 +312,7 @@ class RlSubscriptionManager():
             "odometry_callback": self.odometry_callback,
             "nav2_input_callback": self.nav2_input_callback,
             "plan_with_length_callback": self.plan_with_length_callback,
+            "global_plan_callback": self.global_plan_callback,
             "lidar_point_array_callback": self.lidar_point_array_callback,
             "lidar_raw_callback": self.lidar_raw_callback,
             "agents_callback": self.agents_callback,
@@ -433,6 +434,19 @@ class RlSubscriptionManager():
         plan_2d = [[pose.pose.position.x, pose.pose.position.y]
                    for pose in plan_data.poses]
         self.last_plan = np.array(plan_2d).reshape(1, -1)
+
+    def global_plan_callback(self, plan_data: Path):
+        """
+        Process plan with length data.
+
+        Args:
+        ----
+            plan_data (PathWithLength): Plan with length data.
+
+        """
+        plan_2d = [[pose.pose.position.x, pose.pose.position.y]
+                   for pose in plan_data.poses]
+        self.last_global_plan = np.array(plan_2d).reshape(1, -1)
 
     def lidar_point_array_callback(self, lidar_data: PointArray):
         """
