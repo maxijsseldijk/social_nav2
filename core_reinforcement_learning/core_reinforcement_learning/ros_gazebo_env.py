@@ -1574,9 +1574,13 @@ class GazeboEnv(BaseClassEnv):
             truncated = np.any(truncated_list) or truncated
 
         else:
-            info['done_reason'] = done_reason
-            info['in_interaction_range'] = in_interaction_range
-            info['sim_time'] = round(self.sim_time, 2)
+            info['done_reason'] = [done_reason]
+            info['robot_pose'] = [
+                self.rl_io_manager.last_robot_odom.flatten().tolist()]
+            info['agent_pose'] = [
+                self.rl_io_manager.last_agents_global_frame.tolist()]
+            info['in_interaction_range'] = [in_interaction_range]
+            info['sim_time'] = [round(self.sim_time, 2)]
             reward = self._reward_function(action, info)
         self.node.get_logger().error(f"Reward: {reward}")
 
