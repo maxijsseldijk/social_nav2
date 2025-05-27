@@ -101,7 +101,7 @@ protected:
   std::string global_frame_;
   rclcpp::Publisher<core_custom_messages::msg::PathWithLength>::SharedPtr resample_path_pub_;
   rclcpp::Publisher<core_custom_messages::msg::PathWithLength>::SharedPtr resample_path_local_pub_;
-  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr test_path_pub_;
+  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr local_path_pub_rviz_;
   rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr path_subscription_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr imitation_learning_training_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr inside_interaction_range_;

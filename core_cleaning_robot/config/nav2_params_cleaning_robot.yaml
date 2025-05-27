@@ -154,56 +154,16 @@ controller_server:
       rl_action_output: <rl_action_output>            # The output of the RL algorithm, either "plan" or "diff_drive"
       debug_trajectory_details: True
 
-    
-      # The following parameters are for the DWB local planner if used
-      min_vel_x: -0.1
-      min_vel_y: 0.0
-      max_vel_x: 0.6
-      max_vel_y: 0.0
-      max_vel_theta: 1.0
-      min_speed_xy: 0.0
-      max_speed_xy: 2.26
-      min_speed_theta: 0.0
-      # Add high threshold velocity for turtlebot 3 issue.
-      # https://github.com/ROBOTIS-GIT/turtlebot3_simulations/issues/75
-      acc_lim_x: 2.5
-      acc_lim_y: 0.0
-      acc_lim_theta: 3.2
-      decel_lim_x: -2.5
-      decel_lim_y: 0.0
-      decel_lim_theta: -3.2
-      vx_samples: 20
-      vy_samples: 5
-      vtheta_samples: 20
-      sim_time: 1.7
-      linear_granularity: 0.05
-      angular_granularity: 0.025
-      transform_tolerance: 0.2
-      xy_goal_tolerance: 0.25
-      trans_stopped_velocity: 0.25
-      short_circuit_trajectory_evaluation: True
-      stateful: True
-      critics: ["ObstacleFootprint", "RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
-      BaseObstacle.scale: 0.2
-      PathAlign.scale: 32.0
-      PathAlign.forward_point_distance: 0.1
-      GoalAlign.scale: 24.0
-      GoalAlign.forward_point_distance: 0.1
-      PathDist.scale: 32.0
-      GoalDist.scale: 24.0
-      RotateToGoal.scale: 32.0
-      RotateToGoal.slowing_factor: 5.0
-      RotateToGoal.lookahead_time: -1.0
+      lookahead_dist: <rl_path_length>            
+      desired_linear_vel: 0.3
+      num_samples: 10      
       controller_frame:  <robot_namespace>/odom
       robot_base_frame: <robot_namespace>/base_link
 
       drivetype: "differential" # "differential" or "omnidirectional"
 
-      max_trans_vel_x:      0.6 
-      min_trans_vel_x:      -0.2
-      max_trans_vel_y:      0.0
-      min_trans_vel_y:      0.0
-
+      max_trans_vel:        0.3 
+      min_trans_vel:       -0.2
       max_rot_vel:          0.5 
       min_rot_vel:          0.0 
       max_trans_acc:        2.5
@@ -219,10 +179,10 @@ controller_server:
       is_circular:          true
 
       # sfm params
-      forceFactorDesired: 2.0
-      forceFactorObstacle: 10.0
+      forceFactorDesired: 3.0
+      forceFactorObstacle: 0.1
       forceSigmaObstacle: 0.2
-      forceFactorSocial: 2.1
+      forceFactorSocial: 5.1
       forceFactorGroupGaze: 3.0
       forceFactorGroupCoherence: 2.0
       forceFactorGroupRepulsion: 1.0
@@ -234,7 +194,7 @@ controller_server:
       relaxationTime: 0.5
 
       # cost function weights
-      social_weight:        0.0
+      social_weight:        0.4
       costmap_weight:       2.0
       velocity_weight:      0.8 
       angle_weight:         0.6 

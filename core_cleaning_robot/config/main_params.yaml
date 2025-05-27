@@ -25,16 +25,16 @@
     ros__parameters:
       rl_algorithm: "SAC"                       #The RL algorithm to use. Currently only SAC is supported.   
       time_steps: 1000000
-      action_bounds: [-0.8, 0.8]                #The bounds for the actions that the RL algorithm can take. Either maximum velocity or maximum distance depending on action type.
+      action_bounds: [-1.0, 1.0]                #The bounds for the actions that the RL algorithm can take. Either maximum velocity or maximum distance depending on action type.
       seed: 1                                   #The seed for the random number generator
-      train: True                               #Determines if the RL algorithm should be trained or evaluated
-      time_step_length: 1.0                     #The length of a timestep in seconds  
+      train: False                               #Determines if the RL algorithm should be trained or evaluated
+      time_step_length: 0.3                     #The length of a timestep in seconds  
       reward_averaging: True                    #Determines if the reward should be averaged over the number of timesteps. Note can cause small error in pause time.
       reward_samples_per_timestep: 3            #The number of samples to use for the reward per timestep if reward averaging is used
-      collision_footprint_factor: 1.5           #Parameter used to multiply the robot footprint to reset the simulation before a real collision occurs.
+      collision_footprint_factor: 1.0           #Parameter used to multiply the robot footprint to reset the simulation before a real collision occurs.
       footprint_scale: 0.8                      #The scale of the footprint of the robot compared to the one used by NAV2. This is used for determining if there is a future collision.
       grid_size: 0.1                            #The size of the grid to use for discrete plan actions
-      max_trial_timesteps: 40
+      max_trial_timesteps: 100
 
 
       ### REWARD FUNCTION PARAMETERS ###
@@ -54,8 +54,8 @@
       max_timesteps:
         reward: -1.0
       path_traversal:
-        max_reward: 0.2                         #Scaling of the tanh. This max_reward also defines the min_reward as -max_reward
-        path_traversal_for_positive_reward: 0.2 #The NAV2 path distance the agents needs to reduce to get a reward in an interaction
+        max_reward: 0.8                         #Scaling of the tanh. This max_reward also defines the min_reward as -max_reward
+        path_traversal_for_positive_reward: 0.05 #The NAV2 path distance the agents needs to reduce to get a reward in an interaction
       agent_velocity_disturbance:
         v_pref: 0.4                             #The preferred velocity of the agent. This is used to determine the reward for the agent velocity disturbance
         max_reward: 0.0
@@ -176,8 +176,8 @@
         # control point based on the social force model. It is used for imitation learning
         # to generate some social behaviour as a starting point.
         callback_frequency: 10 #Hz
-        state_nodes: ['nav2_input', 'lidar', 'agents']
-        utility_nodes: ['costmap','footprint','robot_odom','plan', 'agents_global_frame','lidar_raw']
+        state_nodes: ['nav2_input', 'lidar', 'agents','plan']
+        utility_nodes: ['costmap','footprint', 'global_plan','robot_odom', 'agents_global_frame']
         costmap:
           topic: 'cleaning_robot/global_costmap/costmap'
           type: 'OccupancyGrid'
@@ -217,6 +217,7 @@
           topic: 'cleaning_robot/scan'
           type: 'LaserScan'
           callback: 'lidar_raw_callback'
+
         agents:
           topic: '/agents'
           type: 'People'
@@ -260,7 +261,7 @@
     # Construct safe corridor settings also necessary for the RL algorithm
     use_constant_for_distant_measurements: True
     max_lidar_distance: 6.0
-    force_waypoint_in_corridor: False          # Can only be used when plan is in the local frame
+    force_waypoint_in_corridor: True          # Can only be used when plan is in the local frame
     corridor_safety_margin: 0.30
 
     # Dynamic Agents Parameters

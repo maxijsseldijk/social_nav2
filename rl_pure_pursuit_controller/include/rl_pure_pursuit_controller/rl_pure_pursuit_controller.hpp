@@ -168,6 +168,7 @@ protected:
   tf2::Duration transform_tolerance_;
   double lookahead_dist_;
   double max_angular_vel_;
+  int num_samples_;
   std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<geometry_msgs::msg::PointStamped>>
     carrot_pub_;
   std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<core_custom_messages::msg::PathWithLength>>

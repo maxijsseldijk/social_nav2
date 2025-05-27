@@ -63,13 +63,16 @@ void RlPurePursuitController::configure(
   double transform_tolerance = 0.1;
 
   declare_parameter_if_not_declared(
-    node, plugin_name_ + ".desired_linear_vel", rclcpp::ParameterValue(0.3));
+    node, plugin_name_ + ".desired_linear_vel", rclcpp::ParameterValue(0.6));
 
   declare_parameter_if_not_declared(
     node, plugin_name_ + ".transform_tolerance", rclcpp::ParameterValue(0.1));
 
   declare_parameter_if_not_declared(
-    node, plugin_name_ + ".lookahead_dist", rclcpp::ParameterValue(0.8));
+    node, plugin_name_ + ".lookahead_dist", rclcpp::ParameterValue(1.0));
+
+  declare_parameter_if_not_declared(
+    node, plugin_name_ + ".num_samples", rclcpp::ParameterValue(10));
 
   declare_parameter_if_not_declared(
     node, plugin_name_ + ".max_angular_velocity", rclcpp::ParameterValue(0.5));
@@ -78,6 +81,7 @@ void RlPurePursuitController::configure(
   base_desired_linear_vel_ = desired_linear_vel_;
   node->get_parameter(plugin_name_ + ".transform_tolerance", transform_tolerance);
   node->get_parameter(plugin_name_ + ".lookahead_dist", lookahead_dist_);
+  node->get_parameter(plugin_name_ + ".num_samples", num_samples_);
   node->get_parameter(plugin_name_ + ".max_angular_velocity", max_angular_vel_);
 
   transform_tolerance_ = tf2::durationFromSec(transform_tolerance);
@@ -252,14 +256,14 @@ nav_msgs::msg::Path RlPurePursuitController::transformGlobalPlan(
   global_plan_.poses.erase(begin(global_plan_.poses), transformation_begin);
 
   // Resample path to have an uniform distance between points
-  int nsamples = 100;
+
   auto [uniform_path_msg, numberOfPoses] = resample_path_->processPath(
-    transformed_plan, max_costmap_extent, nsamples, transformed_plan.header.frame_id);
+    transformed_plan, max_costmap_extent, num_samples_, transformed_plan.header.frame_id);
   // Convert the PathWithLength message to a Path as we do not need the length
   // information
   nav_msgs::msg::Path transformed_plan_;
   transformed_plan_.header = transformed_plan.header;
-  transformed_plan_.poses = transformed_plan.poses;
+  transformed_plan_.poses = uniform_path_msg.poses;
   // Calculate the total path length
   double total_path_length = nav2_util::geometry_utils::calculate_path_length(global_plan_);
 
@@ -279,7 +283,7 @@ nav_msgs::msg::Path RlPurePursuitController::transformGlobalPlan(
   global_path_length_ = total_path_length;  // Make it available to publish to the rl script
   global_path_pub_->publish(transformed_plan_);
 
-  if (transformed_plan_.poses.empty()) {
+  if (transformed_plan.poses.empty()) {
     throw nav2_core::PlannerException("Resulting plan has 0 poses in it.");
   }
 

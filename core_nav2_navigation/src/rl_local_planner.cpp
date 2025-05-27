@@ -145,7 +145,7 @@ void RLLocalPlanner::configure(
     "/in_interaction_range", 1,
     [this](const std_msgs::msg::Bool::SharedPtr msg) { inside_interaction_range_msg_ = msg; });
 
-  test_path_pub_ = node->create_publisher<nav_msgs::msg::Path>(namespace_ + "/test_path", 1);
+  local_path_pub_rviz_ = node->create_publisher<nav_msgs::msg::Path>(namespace_ + "/local_path_rviz", 1);
 
   RCLCPP_INFO(logger_, "Configured RL Controller: %s", name_.c_str());
 }
@@ -219,26 +219,27 @@ void RLLocalPlanner::setPlan(const nav_msgs::msg::Path & path)
     auto [uniform_path_msg, numberOfPoses] =
       resample_path_->processPath(path, rl_path_length_, rl_path_samples_, path.header.frame_id);
     resample_path_pub_->publish(uniform_path_msg);
+    
+    // Get the path in the frame of the robot
+    auto local_path_w_len = transformPathToLocal(uniform_path_msg, costmap_ros_->getBaseFrameID());
+    resample_path_local_pub_->publish(local_path_w_len);
 
-    auto local_path = transformPathToLocal(uniform_path_msg, costmap_ros_->getBaseFrameID());
-    resample_path_local_pub_->publish(local_path);
-
-    nav_msgs::msg::Path path_test;
-    path_test.header.stamp = rclcpp::Clock().now();
-    path_test.header.frame_id = path.header.frame_id;
-    path_test.poses.insert(
-      path_test.poses.end(), uniform_path_msg.poses.begin(), uniform_path_msg.poses.end());
-    test_path_pub_->publish(path_test);
+    nav_msgs::msg::Path local_path;
+    local_path.header.stamp = rclcpp::Clock().now();
+    local_path.header.frame_id = local_path_w_len.header.frame_id;
+    local_path.poses.insert(
+      local_path.poses.end(), local_path_w_len.poses.begin(), local_path_w_len.poses.end());
+    local_path_pub_rviz_->publish(local_path);
 
     if (reinforcement_learning_path_ && rl_action_output_ == "plan") {
       if (imitation_learning_training_msg_ && imitation_learning_training_msg_->data == true) {
-        reinforcement_learning_path_ = std::make_shared<nav_msgs::msg::Path>(path);
+        reinforcement_learning_path_ = std::make_shared<nav_msgs::msg::Path>(local_path);
       } else if (inside_interaction_range_msg_ && inside_interaction_range_msg_->data == false) {
         RCLCPP_INFO(
           logger_,
           "RL path is created with outside interaction range for this reason the global plan "
           "is used as input.");
-        controller_->setPlan(path);
+        controller_->setPlan(local_path);
         return;
       }
 
@@ -277,14 +278,14 @@ void RLLocalPlanner::setPlan(const nav_msgs::msg::Path & path)
         "rl_endpoint_ is not initialized. Check if the path is publishing on /RL_local_path. For "
         "now using global plan");
 
-      controller_->setPlan(path);
+      controller_->setPlan(local_path);
     } else {
       RCLCPP_INFO(
         logger_,
         "Invalid rl_action_output_ parameter. Please set it to either 'plan','diff_drive' "
         " or 'waypoint'. Using global plan instead");
 
-      controller_->setPlan(path);
+      controller_->setPlan(local_path);
     }
   }
 }

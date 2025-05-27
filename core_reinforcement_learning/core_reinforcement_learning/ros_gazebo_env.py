@@ -107,7 +107,8 @@ class BaseClassEnv(gym.Env, ABC):
             'agent_names').get_parameter_value().string_array_value
         self.robot_names = self.node.get_parameter(
             'robot_names').get_parameter_value().string_array_value
-
+        self.robot_frame = self.node.get_parameter(
+            'robot_frame').get_parameter_value().string_value
         self.ns_robot = os.path.join(
             self.node.get_namespace(), self.robot_names[0])
         self.footprint_collision_checker = FootprintCollisionChecker()
@@ -1012,7 +1013,6 @@ class GazeboEnv(BaseClassEnv):
         if 'social_force_sfm' in self.reward_functions:
             force_decel, force_evasion, sfm_reward = self._get_social_force_sfm_impl_reward(
                 info['in_interaction_range'])
-            # self.node.get_logger().error(f"Social force reward: {sfm_reward}")
             total_reward += sfm_reward
             if 'social_force_sfm_reward' not in info:
                 info['social_force_sfm_reward'] = []
@@ -1359,7 +1359,6 @@ class GazeboEnv(BaseClassEnv):
 
         if not self.in_interaction_range:
             action = np.array([0.0, 0.0])
-
         last_robot_odom_list = self.rl_io_manager.last_robot_odom.flatten().tolist()
         last_plan_list = self.rl_io_manager.last_plan.flatten().tolist()
         if self.rl_io_manager.check_if_in_all_nodes_list(['last_global_plan']):
@@ -1406,9 +1405,14 @@ class GazeboEnv(BaseClassEnv):
 
             if collision_to_goal:
                 future_collision = True
+            if self.rl_io_manager.last_plan_header.frame_id == os.path.normpath(
+                    os.path.join(self.ns_robot, self.robot_frame)).strip("/"):
+                plan_is_local_frame = True
+            else:
+                plan_is_local_frame = False
 
             # Create safe corridor if needed, currently only works when plan is in the local frame
-            if self.force_waypoint_in_corridor:
+            if self.force_waypoint_in_corridor and plan_is_local_frame:
                 updated_pose = self._force_waypoint_inside_safe_corridor(
                     waypoint=np.array([updated_x_position, updated_y_position]))
 
@@ -1497,10 +1501,10 @@ class GazeboEnv(BaseClassEnv):
 
             self._publish_safe_corridor_rviz(vertices)
             if in_convex_hull(waypoint, vertices):
-                self.node.get_logger().error(
+                self.node.get_logger().debug(
                     "Waypoint in Safe corridor")
             else:
-                self.node.get_logger().error(
+                self.node.get_logger().debug(
                     "Waypoint outside Safe corridor moving it inside vertices")
 
                 waypoint = move_point_to_convex_hull(waypoint, vertices)
@@ -1582,7 +1586,7 @@ class GazeboEnv(BaseClassEnv):
             info['in_interaction_range'] = [in_interaction_range]
             info['sim_time'] = [round(self.sim_time, 2)]
             reward = self._reward_function(action, info)
-        self.node.get_logger().error(f"Reward: {reward}")
+        self.node.get_logger().debug(f"Reward: {reward}")
 
         next_state = self.rl_io_manager.get_state()
 
