@@ -1680,7 +1680,7 @@ class GazeboEnv(BaseClassEnv):
         if not self.eval_mode:
             if self.first_reset:
                 # Task number is initial task number set in __init__
-                self.first_rest = False
+                self.first_reset = False
             else:
                 self.task_number = int(self.rng.integers(
                     0, self.number_of_tasks, dtype=np.int32))
