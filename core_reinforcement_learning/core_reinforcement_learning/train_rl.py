@@ -42,6 +42,8 @@ class RLsimulation(Node):
         self.sim_path = self.get_parameter(
             f'{self.rl_algorithm}.save_model_path').value
         self.sim_name = self.get_parameter('sim_name').value
+        self.num_eval_per_scenario = self.get_parameter(
+            'num_eval_per_scenario').value
         self.use_reward_averaging = self.get_parameter(
             'reward_averaging').value
         self.reward_samples_per_timestep = self.get_parameter(

@@ -20,6 +20,8 @@ class FakeParameter:
 class FakeParameterValue:
     def __init__(self, value):
         self.string_array_value = value
+        self.string_value = value[0] if isinstance(
+            value, list) and value else value
 
 
 class FakeNode:
@@ -173,6 +175,7 @@ class TestGazeboEnv(unittest.TestCase):
             'rl_node_manager.utility_node_2.callback': FakeParameter('agents_callback'),
             'agent_names': FakeParameter(['agent1', 'agent2']),
             'robot_names': FakeParameter(['robot1']),
+            'robot_frame': FakeParameter(['base_link']),
             'width': FakeParameter(0.5),
             'length': FakeParameter(1.0),
             'radius': FakeParameter(None),

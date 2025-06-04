@@ -211,6 +211,7 @@ class BaseClassEnv(gym.Env, ABC):
         self.action_bounds = self.node.get_parameter('action_bounds').value
         self.action_space = None
         self.observation_space = None
+        self.first_reset = True
 
     def __add_requirements(self, requirements: np.ndarray):
         """
@@ -1677,8 +1678,12 @@ class GazeboEnv(BaseClassEnv):
             self._publish_diff_drive_action(np.array([0.0, 0.0]))
 
         if not self.eval_mode:
-            self.task_number = int(self.rng.integers(
-                0, self.number_of_tasks, dtype=np.int32))
+            if self.first_reset:
+                # Task number is initial task number set in __init__
+                self.first_rest = False
+            else:
+                self.task_number = int(self.rng.integers(
+                    0, self.number_of_tasks, dtype=np.int32))
 
         else:
             self.task_number = int(
@@ -1705,7 +1710,9 @@ class GazeboEnv(BaseClassEnv):
 
         self.node.get_logger().error("Reset Requested")
         self.reset_gazebo.reset_simulation(self.task_list[self.task_number])
-        time.sleep(self.time_step_length)
+        self.pause_motion_publisher.publish(BoolMsg(data=True))
+        time.sleep(0.4)
+        self.pause_motion_publisher.publish(BoolMsg(data=False))
 
         self.pause_node.change_pause_simulation(pause=True)
         info = {}
