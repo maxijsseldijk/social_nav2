@@ -10,7 +10,7 @@ from nav_msgs.msg import Path
 from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue
 from rcl_interfaces.srv import SetParameters
 from rclpy.duration import Duration
-from rclpy.qos import QoSProfile, QoSDurabilityPolicy
+from rclpy.qos import qos_profile_parameters
 from scipy.spatial import ConvexHull
 from std_msgs.msg import Bool as BoolMsg, Int32
 from nav2_simple_commander.costmap_2d import PyCostmap2D
@@ -153,12 +153,8 @@ class BaseClassEnv(gym.Env, ABC):
         self.pause_agents_publisher = self.node.create_publisher(
             BoolMsg, '/pause_agents', 1)
 
-        # As the task may be published before the waypoint following node is started,
-        # the QoS profile is set to transient local.
-        qos_profile_task = QoSProfile(depth=1)
-        qos_profile_task.durability = QoSDurabilityPolicy.TRANSIENT_LOCAL
         self.task_number_publisher = self.node.create_publisher(
-            Int32, '/task_number', qos_profile_task)
+            Int32, '/task_number', qos_profile_parameters)
 
         self.requirements = np.empty((0,))
 
@@ -1415,7 +1411,9 @@ class GazeboEnv(BaseClassEnv):
             # Create safe corridor if needed, currently only works when plan is in the local frame
             if self.force_waypoint_in_corridor and plan_is_local_frame:
                 updated_pose = self._force_waypoint_inside_safe_corridor(
-                    waypoint=np.array([updated_x_position, updated_y_position]))
+                    waypoint=np.array(
+                        [updated_x_position, updated_y_position]),
+                    plan_point=last_plan_list)
 
             else:
                 updated_pose = np.array(
@@ -1480,13 +1478,14 @@ class GazeboEnv(BaseClassEnv):
         # Publish the polygon
         self.safe_corridor_pub.publish(polygon_msg)
 
-    def _force_waypoint_inside_safe_corridor(self, waypoint: np.ndarray):
+    def _force_waypoint_inside_safe_corridor(self, waypoint: np.ndarray, plan_point: list[float]):
         """
         Force the waypoint inside the safe corridor.
 
         Args:
         ----
             waypoint (np.ndarray): The waypoint to be forced inside the safe corridor.
+            plan_point (list[float]): The model plan point. Used when no safe corridor is obtained.
 
         Returns
         -------
@@ -1509,6 +1508,11 @@ class GazeboEnv(BaseClassEnv):
                     "Waypoint outside Safe corridor moving it inside vertices")
 
                 waypoint = move_point_to_convex_hull(waypoint, vertices)
+        else:
+            # DUse the safe plan point as a fallback
+            self.node.get_logger().error(
+                "No safe corridor vertices found, using plan point as fallback")
+            waypoint = np.array(plan_point)
         return waypoint
 
     def get_critical_points_from_lidar(self):

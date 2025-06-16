@@ -29,6 +29,7 @@ class SafeCorridor(Node):
             PointArray, f'{self.get_namespace()}/critical_points', 10)
         self.boundary_publisher_rviz = self.create_publisher(
             Marker, f'{self.get_namespace()}/critical_points_rviz', 10)
+        # Not used ?
         self.safe_corridor_rviz_pub_ = self.create_publisher(
             PolygonStamped, f'{self.get_namespace()}/safe_corridor', 10)
 
@@ -78,11 +79,11 @@ class SafeCorridor(Node):
 
             # Check all the points if they fall inside the hyperplane created
             # with (x-boudary_point).T * boudary_point <= 0.
-            # To overcome multiple points on the same line, we add a small margin of 0.05
+            # To overcome multiple points on the same line, we add a small margin of 0.15
             for scan_point in remaining_points:
                 diff_scan_bp = [
                     scan_point[0] - current_bp[0], scan_point[1] - current_bp[1]]
-                if -diff_scan_bp[0] * current_bp[0] - diff_scan_bp[1] * current_bp[1] >= 0.05:
+                if -diff_scan_bp[0] * current_bp[0] - diff_scan_bp[1] * current_bp[1] >= 0.15:
                     pass
                 else:
                     remaining_points_temp.remove(scan_point)

@@ -179,11 +179,22 @@ geometry_msgs::msg::TwistStamped RlPurePursuitController::computeVelocityCommand
   // If the goal pose is in front of the robot then compute the velocity using the pure pursuit
   // else rotate with the max angular velocity until the goal pose is in front of the robot
   if (rl_carrot_pose.pose.position.x > 0) {
-    auto curvature = 2.0 * rl_carrot_pose.pose.position.y /
-                     (rl_carrot_pose.pose.position.x * rl_carrot_pose.pose.position.x +
-                      rl_carrot_pose.pose.position.y * rl_carrot_pose.pose.position.y);
-    linear_vel = desired_linear_vel_;
+    const double rl_carrot_dist2 =
+      (rl_carrot_pose.pose.position.x * rl_carrot_pose.pose.position.x) +
+      (rl_carrot_pose.pose.position.y * rl_carrot_pose.pose.position.y);
+
+    double curvature = 0.0;
+    if (rl_carrot_dist2 > 0.001) {
+      curvature = 2.0 * rl_carrot_pose.pose.position.y / rl_carrot_dist2;
+    }
+    double norm_dist = rl_carrot_dist2 / lookahead_dist_;
+    // If the rl point is close to the robot we want to slow down
+    if (norm_dist > 1.0) {
+      norm_dist = 1.0;
+    }
+    linear_vel = desired_linear_vel_ * norm_dist;
     angular_vel = desired_linear_vel_ * curvature;
+
   } else {
     linear_vel = 0.0;
     angular_vel = max_angular_vel_;
