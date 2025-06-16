@@ -35,7 +35,7 @@ import rclpy
 from rclpy.action import ActionClient
 from rclpy.duration import Duration as rclpyDuration
 from rclpy.node import Node
-from rclpy.qos import QoSDurabilityPolicy, QoSHistoryPolicy
+from rclpy.qos import QoSDurabilityPolicy, QoSHistoryPolicy, qos_profile_parameters
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy
 
 
@@ -71,11 +71,9 @@ class MultiTaskNavigator(Node):
 
         self.get_logger().info('Follow Waypoints Node Started')
         self.params = self.get_parameters_by_prefix('TaskGenerator')
-        qos_profile_task = QoSProfile(depth=1)
-        qos_profile_task.durability = QoSDurabilityPolicy.TRANSIENT_LOCAL
 
         self.subscription = self.create_subscription(
-            Int32, '/task_number', self.task_number_callback, qos_profile_task)
+            Int32, '/task_number', self.task_number_callback, qos_profile_parameters)
 
         self.task_number = self.params['init_task_number'].value
 

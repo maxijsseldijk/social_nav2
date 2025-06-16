@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 
 import rclpy
-from core_nav2_navigation.multi_task_navigator import MultiTaskNavigator, TaskResult
+from core_nav2_navigation.multi_task_navigator import MultiTaskNavigator
 
 
 def main():
@@ -12,28 +12,19 @@ def main():
 
     # Wait for navigation to fully activate
     navigator.waitUntilNav2Active(localizer=f"{namespace}/planner_server")
-
+    first_call = True
     while rclpy.ok():
-        i = 0
-        navigator.previous_task_number = navigator.task_number
-        task_points = navigator.update_goal()
+        if first_call:
+            i = 0
+            navigator.previous_task_number = navigator.task_number
+            task_points = navigator.update_goal()
+            first_call = False
         navigator.goThroughPoses(task_points)
 
         while not navigator.isTaskComplete():
             if navigator.new_task_requested():
-                new_points = navigator.update_goal()
-                navigator.goThroughPoses(new_points)
-
+                task_points = navigator.update_goal()
             i = i + 1
-
-        result = navigator.getResult()
-        if result == TaskResult.SUCCEEDED:
-            pass
-
-        elif result == TaskResult.CANCELED:
-            exit(1)
-        elif result == TaskResult.FAILED:
-            navigator.get_logger().info('Task failed! Returning to start...')
 
     navigator.destroy_node()
     rclpy.shutdown()
