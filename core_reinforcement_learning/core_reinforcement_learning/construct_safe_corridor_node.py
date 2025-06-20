@@ -33,6 +33,18 @@ class SafeCorridor(Node):
         self.safe_corridor_rviz_pub_ = self.create_publisher(
             PolygonStamped, f'{self.get_namespace()}/safe_corridor', 10)
 
+        self.declare_parameter('use_circular_zone', True)
+        self.use_circular_zone = self.get_parameter(
+            'use_circular_zone').value
+
+        self.declare_parameter('circular_zone_radius', 3.0)
+        self.circular_zone_radius = self.get_parameter(
+            'circular_zone_radius').value
+
+        self.declare_parameter('num_circular_zone_points', 20)
+        self.num_circular_zone_points = self.get_parameter(
+            'num_circular_zone_points').value
+
         self.declare_parameter('number_of_boundary_points', 15)
         self.number_of_boundary_points = self.get_parameter(
             'number_of_boundary_points').value
@@ -58,6 +70,28 @@ class SafeCorridor(Node):
         """Fuction that returns a constant for a point outside the max_distance."""
         return (self.max_distance, self.max_distance)
 
+    def append_circular_zone(self, boundary_points: list) -> list:
+        """
+        Append a circular zone to the boundary points.
+
+        This function adds a point at the maximum distance in a circular pattern
+        to ensure the safe corridor is closed.
+
+        Args:
+            boundary_points (list): The list of boundary points to which the circular zone add.
+
+        Returns:
+            list: The updated list of boundary points with the circular zone appended.
+        """
+
+        angle_increment = 2 * math.pi / self.num_circular_zone_points
+        for i in range(self.num_circular_zone_points):
+            angle = i * angle_increment
+            x = self.circular_zone_radius * math.cos(angle)
+            y = self.circular_zone_radius * math.sin(angle)
+            boundary_points.append((x, y))
+        return boundary_points
+
     def timer_callback(self):
         """Process the LiDAR data to find boundary points and publish the safe corridor."""
         if self.laser_data is None:
@@ -67,6 +101,8 @@ class SafeCorridor(Node):
 
         boundary_points = []
         remaining_points = self.laser_data.copy()
+        if self.use_circular_zone:
+            remaining_points = self.append_circular_zone(remaining_points)
 
         closest_obstacle = min(
             remaining_points, key=lambda x: x[0]**2 + x[1]**2)

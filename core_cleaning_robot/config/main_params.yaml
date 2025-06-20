@@ -20,6 +20,10 @@
     ros__parameters:
       number_of_boundary_points: 5
       callback_frequency: 10 #Hz
+      use_circular_zone: True
+      num_circular_zone_points: 20
+      circular_zone_radius: 3.0
+
 
   train_rl:
     ros__parameters:
@@ -176,8 +180,8 @@
         # control point based on the social force model. It is used for imitation learning
         # to generate some social behaviour as a starting point.
         callback_frequency: 10 #Hz
-        state_nodes: ['nav2_input', 'lidar', 'agents','plan']
-        utility_nodes: ['costmap','footprint', 'global_plan','robot_odom', 'agents_global_frame']
+        state_nodes: ['lidar', 'agents', 'plan']
+        utility_nodes: ['costmap','footprint', 'global_plan', 'robot_odom', 'agents_global_frame']
         costmap:
           topic: 'cleaning_robot/global_costmap/costmap'
           type: 'OccupancyGrid'
