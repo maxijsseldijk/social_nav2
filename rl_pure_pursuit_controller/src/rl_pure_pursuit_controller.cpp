@@ -77,12 +77,50 @@ void RlPurePursuitController::configure(
   declare_parameter_if_not_declared(
     node, plugin_name_ + ".max_angular_velocity", rclcpp::ParameterValue(0.5));
 
+  declare_parameter_if_not_declared(
+    node, plugin_name_ + ".min_safety_distance", rclcpp::ParameterValue(0.3));
+  declare_parameter_if_not_declared(
+    node, plugin_name_ + ".max_safety_distance", rclcpp::ParameterValue(1.0));
+  declare_parameter_if_not_declared(
+    node, plugin_name_ + ".collision_x_threshold", rclcpp::ParameterValue(0.1));
+
   node->get_parameter(plugin_name_ + ".desired_linear_vel", desired_linear_vel_);
   base_desired_linear_vel_ = desired_linear_vel_;
   node->get_parameter(plugin_name_ + ".transform_tolerance", transform_tolerance);
   node->get_parameter(plugin_name_ + ".lookahead_dist", lookahead_dist_);
   node->get_parameter(plugin_name_ + ".num_samples", num_samples_);
   node->get_parameter(plugin_name_ + ".max_angular_velocity", max_angular_vel_);
+  node->get_parameter(plugin_name_ + ".min_safety_distance", min_safety_distance_);
+  node->get_parameter(plugin_name_ + ".max_safety_distance", max_safety_distance_);
+  node->get_parameter(plugin_name_ + ".collision_x_threshold", collision_x_threshold_);
+
+  critical_boundary_sub_ = node->create_subscription<core_custom_messages::msg::PointArray>(
+    namespace_ + "/critical_points", 1,
+    [this](const core_custom_messages::msg::PointArray::SharedPtr msg) {
+      auto critical_points = msg->points;
+      if (critical_points.empty()) {
+        RCLCPP_WARN(logger_, "Received empty critical points array");
+        closest_boundary_distance_ = max_safety_distance_;
+        return;
+      }
+      // Get first point in the pointarray that has a x bigger than collision_x_threshold_
+      // This makes sure that we only consider points that are in front of the robot
+      auto closest_critical_point = std::find_if(
+        critical_points.begin(), critical_points.end(),
+        [this](const geometry_msgs::msg::Point & point) {
+          return point.x > collision_x_threshold_;
+        });
+
+      // If no point found, use the first point
+      if (closest_critical_point == critical_points.end()) {
+        closest_critical_point = critical_points.begin();
+      }
+
+      //Get distance of closest critical point to robot
+      closest_boundary_distance_ = std::sqrt(
+        closest_critical_point->x * closest_critical_point->x +
+        closest_critical_point->y * closest_critical_point->y);
+    });
 
   transform_tolerance_ = tf2::durationFromSec(transform_tolerance);
   new_waypoint_received_ = false;
@@ -187,12 +225,19 @@ geometry_msgs::msg::TwistStamped RlPurePursuitController::computeVelocityCommand
     if (rl_carrot_dist2 > 0.001) {
       curvature = 2.0 * rl_carrot_pose.pose.position.y / rl_carrot_dist2;
     }
-    double norm_dist = rl_carrot_dist2 / lookahead_dist_;
-    // If the rl point is close to the robot we want to slow down
-    if (norm_dist > 1.0) {
-      norm_dist = 1.0;
+
+    // Calculate linear velocity based on the distance to nearest collision point
+    double vel_scale = 1.0;
+    if (closest_boundary_distance_ <= min_safety_distance_) {
+      vel_scale = 0.0;  // Collision imminent, only allow turning
+    } else {
+      // Scale the velocity such that it is 0.0 at 0.3m and 1.0 at 1.0m
+      vel_scale = (closest_boundary_distance_ - min_safety_distance_) /
+                  (max_safety_distance_ - min_safety_distance_);
+      vel_scale = std::min(1.0, vel_scale);
     }
-    linear_vel = desired_linear_vel_ * norm_dist;
+
+    linear_vel = desired_linear_vel_ * vel_scale;
     angular_vel = desired_linear_vel_ * curvature;
 
   } else {

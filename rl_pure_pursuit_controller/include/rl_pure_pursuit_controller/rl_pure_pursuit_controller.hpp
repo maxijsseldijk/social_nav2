@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "core_custom_messages/msg/path_with_length.hpp"
+#include "core_custom_messages/msg/point_array.hpp"
 #include "core_nav2_utils/resample_path.hpp"
 #include "geometry_msgs/msg/pose2_d.hpp"
 #include "nav2_core/controller.hpp"
@@ -169,6 +170,8 @@ protected:
   double lookahead_dist_;
   double max_angular_vel_;
   int num_samples_;
+  rclcpp::Subscription<core_custom_messages::msg::PointArray>::SharedPtr critical_boundary_sub_;
+  double closest_boundary_distance_;
   std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<geometry_msgs::msg::PointStamped>>
     carrot_pub_;
   std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<core_custom_messages::msg::PathWithLength>>
@@ -185,6 +188,8 @@ protected:
   std::mutex mutex_;
   std::shared_ptr<nav_msgs::msg::Path> rl_waypoint_;
   double desired_linear_vel_, base_desired_linear_vel_;
+  double min_safety_distance_, max_safety_distance_;
+  double collision_x_threshold_;
 };
 
 }  // namespace rl_pure_pursuit_controller

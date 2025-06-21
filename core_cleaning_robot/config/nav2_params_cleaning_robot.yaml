@@ -155,15 +155,20 @@ controller_server:
       debug_trajectory_details: True
 
       lookahead_dist: <rl_path_length>            
+      # Rl controller parameters
       desired_linear_vel: 0.3
-      num_samples: 10      
+      min_safety_distance: 0.3 # Minimum distance to the closest obstacle to allow forward motion
+      max_safety_distance: 1.0 # Maximum distance to slow down the robot as (velocity) * (distance - min_safety_distance) / (max_safety_distance - min_safety_distance)
+      collision_x_threshold: 0.1 # Threshold for only considering point ahead of the robot for slowing down by using a tolerance we filter out points to the sides.
+      num_samples: 10  # Number of samples of the global path to find the point furthest ahead inside the safe corridor
+
       controller_frame:  <robot_namespace>/odom
       robot_base_frame: <robot_namespace>/base_link
 
       drivetype: "differential" # "differential" or "omnidirectional"
 
       max_trans_vel:        0.3 
-      min_trans_vel:       -0.2
+      min_trans_vel:        0.0
       max_rot_vel:          0.5 
       min_rot_vel:          0.0 
       max_trans_acc:        2.5
@@ -172,8 +177,8 @@ controller_server:
       yaw_goal_tolerance:   0.2
       xy_goal_tolerance:    0.2
       wp_tolerance:         1.0
-      sim_time:             1.7 
-      sim_granularity:      0.17
+      sim_time:             4.0 
+      sim_granularity:      0.4
       robot_radius:         0.19
       people_radius:        0.17
       is_circular:          true
@@ -182,7 +187,7 @@ controller_server:
       forceFactorDesired: 3.0
       forceFactorObstacle: 0.1
       forceSigmaObstacle: 0.2
-      forceFactorSocial: 5.1
+      forceFactorSocial: 4.1
       forceFactorGroupGaze: 3.0
       forceFactorGroupCoherence: 2.0
       forceFactorGroupRepulsion: 1.0
