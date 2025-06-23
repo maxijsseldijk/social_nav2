@@ -5,9 +5,9 @@
 <root main_tree_to_execute="MainTree">
   <BehaviorTree ID="MainTree">
     <PipelineSequence name="NavigateWithReplanning">
-      <GoalUpdatedController>
+      <RateController hz="2.0">
         <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
-      </GoalUpdatedController>
+      </RateController>
       <FollowPath path="{path}"  controller_id="FollowPath"/>
     </PipelineSequence>
   </BehaviorTree>
