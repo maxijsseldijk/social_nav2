@@ -145,7 +145,8 @@ void RLLocalPlanner::configure(
     "/in_interaction_range", 1,
     [this](const std_msgs::msg::Bool::SharedPtr msg) { inside_interaction_range_msg_ = msg; });
 
-  local_path_pub_rviz_ = node->create_publisher<nav_msgs::msg::Path>(namespace_ + "/local_path_rviz", 1);
+  local_path_pub_rviz_ =
+    node->create_publisher<nav_msgs::msg::Path>(namespace_ + "/local_path_rviz", 1);
 
   RCLCPP_INFO(logger_, "Configured RL Controller: %s", name_.c_str());
 }
@@ -219,7 +220,7 @@ void RLLocalPlanner::setPlan(const nav_msgs::msg::Path & path)
     auto [uniform_path_msg, numberOfPoses] =
       resample_path_->processPath(path, rl_path_length_, rl_path_samples_, path.header.frame_id);
     resample_path_pub_->publish(uniform_path_msg);
-    
+
     // Get the path in the frame of the robot
     auto local_path_w_len = transformPathToLocal(uniform_path_msg, costmap_ros_->getBaseFrameID());
     resample_path_local_pub_->publish(local_path_w_len);

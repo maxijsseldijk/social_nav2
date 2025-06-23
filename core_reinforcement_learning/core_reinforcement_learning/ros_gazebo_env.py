@@ -10,7 +10,7 @@ from nav_msgs.msg import Path
 from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue
 from rcl_interfaces.srv import SetParameters
 from rclpy.duration import Duration
-from rclpy.qos import qos_profile_parameters
+from rclpy.qos import QoSProfile, QoSDurabilityPolicy
 from scipy.spatial import ConvexHull
 from std_msgs.msg import Bool as BoolMsg, Int32
 from nav2_simple_commander.costmap_2d import PyCostmap2D
@@ -153,8 +153,12 @@ class BaseClassEnv(gym.Env, ABC):
         self.pause_agents_publisher = self.node.create_publisher(
             BoolMsg, '/pause_agents', 1)
 
+        # As the task may be published before the waypoint following node is started,
+        # the QoS profile is set to transient local.
+        qos_profile_task = QoSProfile(depth=1)
+        qos_profile_task.durability = QoSDurabilityPolicy.TRANSIENT_LOCAL
         self.task_number_publisher = self.node.create_publisher(
-            Int32, '/task_number', qos_profile_parameters)
+            Int32, '/task_number', qos_profile_task)
 
         self.requirements = np.empty((0,))
 

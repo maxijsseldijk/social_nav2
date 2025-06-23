@@ -11,7 +11,7 @@
     <xacro:arg name="laser_max_angle"  default="3.1515"/>
     <xacro:arg name="laser_max_range"  default="6"/>
     <xacro:arg name="laser_range_resolution"  default="0.01"/>
-    <xacro:arg name="laser_noise_stddev"  default="0.01"/>
+    <xacro:arg name="laser_noise_stddev"  default="0.002"/>
 
 
 

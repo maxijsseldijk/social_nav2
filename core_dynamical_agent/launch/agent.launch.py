@@ -139,16 +139,24 @@ def launch_setup(context):
                 package='tf2_ros',
                 executable='static_transform_publisher',
                 name='world_to_map',
-                arguments=['0', '0', '0', '0', '0', '0',
-                           'world', f'{namespace_value}/map'],
+                arguments=[
+                    '--x', '0', '--y', '0', '--z', '0',
+                    '--roll', '0', '--pitch', '0', '--yaw', '0',
+                    '--frame-id', 'world',
+                    '--child-frame-id', f'{namespace_value}/map'
+                ],
                 output='screen',
             ),
             Node(
                 package='tf2_ros',
                 executable='static_transform_publisher',
                 name='static_transform_publisher',
-                arguments=['0', '0', '0', '0', '0', '0',
-                           f'{namespace_value}/map', f'{namespace_value}/odom'],
+                arguments=[
+                    '--x', '0', '--y', '0', '--z', '0',
+                    '--roll', '0', '--pitch', '0', '--yaw', '0',
+                    '--frame-id', f'{namespace_value}/map',
+                    '--child-frame-id', f'{namespace_value}/odom'
+                ],
                 output='screen',
             ),
         ]
