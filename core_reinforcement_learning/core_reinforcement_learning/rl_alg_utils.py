@@ -43,7 +43,16 @@ class SaveOnInterval(BaseCallback):
         hparam_dict = {
             "algorithm": self.model.__class__.__name__,
             "gamma": self.model.gamma,
+            "sim_name": str(env.node.sim_name),
+            "use_expert_demonstrations": str(env.node.use_expert_demonstrations),
+            "load_model": str(env.node.train_params['load_model'].value),
             "learning starts": self.model.learning_starts,
+            "load_model path": str(env.node.train_params['load_model_path'].value),
+            "load_replay_buffer": str(env.node.train_params['load_replay_buffer'].value),
+            "load_replay_buffer path": str(env.node.train_params['load_replay_buffer_path'].value),
+            "state_nodes": str(env.rl_io_manager.state_callback_names),
+            "utility_nodes": str(env.rl_io_manager.utility_callback_names),
+            "reward_functions": str(env.reward_functions),
             "batch size": self.model.batch_size,
             "ent coef": self.model.ent_coef,
             "target entropy": self.model.target_entropy,
@@ -72,8 +81,13 @@ class SaveOnInterval(BaseCallback):
         if 'total_reward' in local:
             # Calculate mean and standard deviation
             total_reward_mean = np.mean(local["total_reward"])
-            terminal_reward_mean = np.mean(
-                local["terminal_reward"]) if "terminal_reward" in local else 0
+
+            if np.count_nonzero(local["terminal_reward"]) > 0:
+                non_zero_terminal_rewards = [
+                    reward for reward in local["terminal_reward"] if reward != 0]
+                terminal_reward_mean = np.mean(non_zero_terminal_rewards)
+            else:
+                terminal_reward_mean = 0.0
             goal_distance_reward_mean = np.mean(
                 local["goal_distance_reward"]) if "goal_distance_reward" in local else 0
             velocity_reward_mean = np.mean(
@@ -88,6 +102,8 @@ class SaveOnInterval(BaseCallback):
                 local["force_evasion"]) if "force_evasion" in local else 0
             proxemics_reward = np.mean(
                 local["proxemics_reward"]) if "proxemics_reward" in local else 0
+            collision_counter = np.mean(
+                local["collision_counter"]) if "collision_counter" in local else 0
 
             # Log the mean and std of the total reward
             self.logger.record("reward/total_reward_mean", total_reward_mean)
@@ -106,6 +122,7 @@ class SaveOnInterval(BaseCallback):
             self.logger.record("reward/social_force_evasion",
                                social_force_evasion)
             self.logger.record("reward/proxemics_reward", proxemics_reward)
+            self.logger.record("terminal/collision_counter", collision_counter)
 
         return True
 
