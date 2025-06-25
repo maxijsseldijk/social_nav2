@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 import os
 import gymnasium as gym
 import numpy as np
-from geometry_msgs.msg import Twist, PoseStamped, PolygonStamped, Point32
+from geometry_msgs.msg import Twist, PoseStamped, PolygonStamped, Point32, PointStamped
 from nav_msgs.msg import Path
 from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue
 from rcl_interfaces.srv import SetParameters
@@ -140,6 +140,8 @@ class BaseClassEnv(gym.Env, ABC):
         # TODO needs if statements for when these publishers should exist
         self.plan_publisher = self.node.create_publisher(
             Path, f'{self.ns_robot}/rl_local_plan', 1)
+        self.max_safe_point_publisher = self.node.create_publisher(
+            PointStamped, f'{self.ns_robot}/max_safe_plan_point', 1)
         self.robot_action_publisher = self.node.create_publisher(
             Twist, f'{self.ns_robot}/cmd_vel_rl', 1)
 
@@ -885,6 +887,7 @@ class GazeboEnv(BaseClassEnv):
         self.last_distance_to_goal = None
         self.last_distance_reward = None
         self.starting_plan_length = None
+        self.collision_counter = 0
 
         # Gym environment parameters
         self.last_nav2_input_zero = False
@@ -1026,16 +1029,16 @@ class GazeboEnv(BaseClassEnv):
             info['force_deceleration'].append(force_decel)
             info['force_evasion'].append(force_evasion)
 
-        if 'total_reward' not in info:
-            info['total_reward'] = []
-        info['total_reward'].append(total_reward)
-
-        terminal_reward = total_reward
+        terminal_reward = 0.0
 
         # The terminal rewards are ranked based on importance as it may occur that multiple entries
         # are in the done_reason that could lead to different terminal rewards.
-        if any(reason == 'current_collision' for reason in info['done_reason']):
+        if (any(reason == 'current_collision' for reason in info['done_reason'])
+                and 'collision' in self.reward_functions):
             self.node.get_logger().info("Current collision detected")
+            self.collision_counter += 1
+            self.node.get_logger().error(
+                f'Collision counter: {self.collision_counter}')
             terminal_reward = self._get_collision_reward()
 
         elif (any(reason == 'at_goal' for reason in info['done_reason'])
@@ -1073,11 +1076,21 @@ class GazeboEnv(BaseClassEnv):
             self.node.get_logger().info("Max timesteps reached")
             terminal_reward = time_reward
 
+        total_reward += terminal_reward
+
         if 'terminal_reward' not in info:
             info['terminal_reward'] = []
         info['terminal_reward'].append(terminal_reward)
 
-        return terminal_reward
+        if 'collision_counter' not in info:
+            info['collision_counter'] = []
+        info['collision_counter'].append(self.collision_counter)
+
+        if 'total_reward' not in info:
+            info['total_reward'] = []
+        info['total_reward'].append(total_reward)
+
+        return total_reward
 
     # Collision and Interaction functions
     def __lidar_collision_check(self) -> bool:
@@ -1342,6 +1355,19 @@ class GazeboEnv(BaseClassEnv):
         twist.angular.z = action[1].item()
         self.robot_action_publisher.publish(twist)
 
+    def _publish_max_safe_plan_action(self, last_point: np.ndarray):
+        if last_point is not None:
+
+            # Publish the maximum safe point to the max safe point topic
+            point_cmd = PointStamped()
+            point_cmd.point.x = last_point[0].item()
+            point_cmd.point.y = last_point[1].item()
+            point_cmd.point.z = 0.0
+            point_cmd.header.frame_id = self.rl_io_manager.last_plan_header.frame_id
+            point_cmd.header.stamp = self.rl_io_manager.last_plan_header.stamp
+
+            self.max_safe_point_publisher.publish(point_cmd)
+
     def _publish_plan_action(self, action: np.ndarray) -> bool:
         """
         Publish the plan action to the plan topic.
@@ -1372,6 +1398,8 @@ class GazeboEnv(BaseClassEnv):
                 if last_global_plan_list is not None:
                     last_plan_list = last_global_plan_list.flatten().tolist()
 
+                    self._publish_max_safe_plan_action(
+                        last_global_plan_list.flatten())
         future_collision = False
 
         # Publish the robot action
@@ -1445,11 +1473,12 @@ class GazeboEnv(BaseClassEnv):
 
             point_in_hull = in_convex_hull(plan, hull_vertices)
 
-            if np.all(point_in_hull) is False and np.any(point_in_hull):
-                last_point_in_hull = plan[np.where(
-                    point_in_hull is False)[0][0] - 1]
-            elif np.all(point_in_hull):
+            if np.all(point_in_hull):
                 last_point_in_hull = plan[-1]
+
+            elif np.any(point_in_hull):
+                last_point_in_hull = plan[np.where(~point_in_hull)[0][0] - 1]
+
             else:
                 # All points are outside the hull
                 last_point_in_hull = None
@@ -1734,7 +1763,8 @@ class GazeboEnv(BaseClassEnv):
         Args:
         ----
             params (list): A list of tuples where each tuple contains the parameter name and value.
-                        Example: [('param1', 1.0), ('param2', 42), ('param3', 'value')]
+                        Example: [('param1', 1.0), ('param2', 42),
+                                   ('param3', 'value')]
 
         """
         parameter_list = []
