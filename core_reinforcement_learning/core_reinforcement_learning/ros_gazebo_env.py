@@ -10,12 +10,12 @@ from nav_msgs.msg import Path
 from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue
 from rcl_interfaces.srv import SetParameters
 from rclpy.duration import Duration
-from rclpy.qos import QoSProfile, QoSDurabilityPolicy
+from rclpy.qos import QoSProfile, QoSDurabilityPolicy, QoSReliabilityPolicy
 from scipy.spatial import ConvexHull
-from std_msgs.msg import Bool as BoolMsg, Int32
+from std_msgs.msg import Bool as BoolMsg
 from nav2_simple_commander.costmap_2d import PyCostmap2D
 
-
+from core_custom_messages.msg import Int32Stamped
 from core_reinforcement_learning.footprint_collision_checker import FootprintCollisionChecker
 from core_reinforcement_learning.publish_agents_velocity import (
     OUTSIDE_RANGE_VELOCITY, OUTSIDE_RANGE_LOC
@@ -158,9 +158,11 @@ class BaseClassEnv(gym.Env, ABC):
         # As the task may be published before the waypoint following node is started,
         # the QoS profile is set to transient local.
         qos_profile_task = QoSProfile(depth=1)
-        qos_profile_task.durability = QoSDurabilityPolicy.TRANSIENT_LOCAL
+        qos_profile_task.reliability = QoSReliabilityPolicy.RELIABLE
+        qos_profile_task.durability = QoSDurabilityPolicy.VOLATILE
+
         self.task_number_publisher = self.node.create_publisher(
-            Int32, '/task_number', qos_profile_task)
+            Int32Stamped, '/task_number', qos_profile_task)
 
         self.requirements = np.empty((0,))
 
@@ -1736,7 +1738,14 @@ class GazeboEnv(BaseClassEnv):
         self.node.get_logger().error(
             f"Task number: {self.task_number} Task list: {self.task_list} \
               Number of tasks: {self.number_of_tasks}")
-        self.task_number_publisher.publish(Int32(data=self.task_number))
+
+        # Publish the task number such that it can be updated in the navigators
+        task_msg = Int32Stamped()
+        task_msg.data = self.task_number
+        task_msg.header.frame_id = self.ns_robot
+        task_msg.header.stamp = self.node.get_clock().now().to_msg()
+
+        self.task_number_publisher.publish(task_msg)
 
         task_params = self.node.get_parameters_by_prefix(
             f'TaskGenerator.param_change_list.{self.task_list[self.task_number]}')

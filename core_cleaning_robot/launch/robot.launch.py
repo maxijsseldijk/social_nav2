@@ -52,7 +52,7 @@ def launch_setup(context):
     launch_dir = os.path.join(pkg_path, 'launch')
 
     xacro_file = os.path.join(
-        pkg_path, 'models', 'cleaning_robot', 'robot.urdf.xacro')
+        pkg_path, 'models', 'turtle_bot', 'core_turtlebot3_waffle_pi', 'model.sdf.xacro')
     robot_description_config = xacro.process_file(xacro_file,
                                                   mappings={
                                                       'name': namespace_value,
@@ -119,7 +119,7 @@ def launch_setup(context):
             f'/model/{namespace_value}/scan@sensor_msgs/msg/LaserScan[ignition.msgs.LaserScan',
             f'/model/{namespace_value}/scan/points@sensor_msgs/msg/PointCloud2'
             '[ignition.msgs.PointCloudPacked',
-            f'/model/{namespace_value}/odometry_IMU@nav_msgs/msg/Odometry[ignition.msgs.Odometry',
+            f'/model/{namespace_value}/odometry@nav_msgs/msg/Odometry[ignition.msgs.Odometry',
             f'/model/{namespace_value}/odometry_tf@tf2_msgs/msg/TFMessage[gz.msgs.Pose_V'
         ],
         remappings=[
@@ -130,7 +130,7 @@ def launch_setup(context):
             (f'/model/{namespace_value}/scan', f'/{namespace_value}/scan'),
             (f'/model/{namespace_value}/scan/points',
              f'/{namespace_value}/scan/points'),
-            (f'/model/{namespace_value}/odometry_IMU',
+            (f'/model/{namespace_value}/odometry',
              f'/{namespace_value}/odometry'),
             (f'/model/{namespace_value}/odometry_tf', '/tf'),
         ],

@@ -5,8 +5,8 @@
     <plugin name="ignition::gazebo::systems::DiffDrive" filename="libignition-gazebo-diff-drive-system.so">
 
         <!-- Wheel information-->
-        <left_joint>left_wheel_joint</left_joint>
-        <right_joint>right_wheel_joint</right_joint>
+        <left_joint>wheel_left_joint</left_joint>
+        <right_joint>wheel_right_joint</right_joint>
         <wheel_separation>0.35</wheel_separation>
         <wheel_radius>0.05</wheel_radius>
         <topic>model/$(arg name)/cmd_vel</topic>
@@ -19,7 +19,7 @@
             <odom_frame>$(arg name)/odom</odom_frame>
             <robot_base_frame>$(arg name)/base_link</robot_base_frame>
             <odom_publish_frequency>10</odom_publish_frequency>
-            <odom_topic>/model/$(arg name)/odometry_IMU</odom_topic>
+            <odom_topic>/model/$(arg name)/odometry</odom_topic>
             <odom_covariance_topic>/model/$(arg name)/odometry_with_covariance</odom_covariance_topic>
             <tf_topic>/model/$(arg name)/odometry_tf</tf_topic>
             <dimensions>3</dimensions>

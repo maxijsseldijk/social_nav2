@@ -19,6 +19,7 @@ import os
 import time
 from copy import deepcopy
 from std_msgs.msg import Int32
+from core_custom_messages.msg import Int32Stamped
 from action_msgs.msg import GoalStatus
 from builtin_interfaces.msg import Duration
 from geometry_msgs.msg import Point
@@ -72,10 +73,10 @@ class MultiTaskNavigator(Node):
         self.get_logger().info('Follow Waypoints Node Started')
         self.params = self.get_parameters_by_prefix('TaskGenerator')
         qos_profile_task = QoSProfile(depth=1)
-        qos_profile_task.durability = QoSDurabilityPolicy.TRANSIENT_LOCAL
+        qos_profile_task.durability = QoSDurabilityPolicy.VOLATILE
 
         self.subscription = self.create_subscription(
-            Int32, '/task_number', self.task_number_callback, qos_profile_task)
+            Int32Stamped, '/task_number', self.task_number_callback, qos_profile_task)
 
         self.task_number = self.params['init_task_number'].value
 
@@ -155,8 +156,11 @@ class MultiTaskNavigator(Node):
             raise ValueError(f"Unsupported parameter type: {type(param)}")
 
     def task_number_callback(self, msg):
-        self.task_number = msg.data
-        self.task_number_timestamp = self.get_clock().now()
+        self.task_number_timestamp = msg.header.stamp
+        if self.task_number_timestamp != self.previous_task_timestamp:
+            self.task_number = msg.data
+            self.error(
+                f'Task number updated to {self.task_number} at {self.task_number_timestamp}')
 
     def new_task_requested(self) -> bool:
         return self.task_number_timestamp != self.previous_task_timestamp
@@ -165,6 +169,8 @@ class MultiTaskNavigator(Node):
         """Update the goal based on the current task."""
         self.cancelTask()
         self.previous_task_timestamp = self.task_number_timestamp
+        self.error(
+            f'Updating goal for task number {self.task_number} at {self.task_number_timestamp}')
         trimmed_namespace = os.path.basename(
             os.path.normpath(self.get_namespace()))
         trajectory = self.params[

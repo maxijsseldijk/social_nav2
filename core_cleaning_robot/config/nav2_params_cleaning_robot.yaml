@@ -211,7 +211,7 @@ controller_server:
         people_topic:       /agents_global_frame
         #dyn_obs_topic:     dynamic_obstacles
         odom_topic:         /<robot_namespace>/odometry
-        max_obstacle_dist:  6.0
+        max_obstacle_dist:  3.5
         naive_goal_time:    2.0
         people_velocity:    0.6
 

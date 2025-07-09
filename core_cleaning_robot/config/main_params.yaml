@@ -28,10 +28,10 @@
   train_rl:
     ros__parameters:
       rl_algorithm: "SAC"                       #The RL algorithm to use. Currently only SAC is supported.   
-      time_steps: 1000000
+      time_steps: 150000
       action_bounds: [-1.0, 1.0]                #The bounds for the actions that the RL algorithm can take. Either maximum velocity or maximum distance depending on action type.
       seed: 1                                   #The seed for the random number generator
-      train: True                               #Determines if the RL algorithm should be trained or evaluated
+      train: False                               #Determines if the RL algorithm should be trained or evaluated
       time_step_length: 0.3                     #The length of a timestep in seconds  
       reward_averaging: False                    #Determines if the reward should be averaged over the number of timesteps. Note can cause small error in pause time.
       reward_samples_per_timestep: 5            #The number of samples to use for the reward per timestep if reward averaging is used
@@ -42,7 +42,7 @@
 
 
       ### REWARD FUNCTION PARAMETERS ###
-      reward_functions: ['path_traversal','proxemics']
+      reward_functions: ['collision','path_traversal','social_force_sfm']
       goal_reached:
         goal_threshold: 0.7
         reward: 1.0
@@ -107,12 +107,12 @@
         
       ### RL ALGORITHM PARAMETERS ###       
       SAC:
-        save_model_path: "Expert_PROX_3_T_0_3_EPS_TERM_NO_ROBOT_STATE_MAX_POINT"
-        load_model_path: "Expert_SFM_8_T_0_3_EPS_TERM_NO_ROBOT_STATE_CIRCLE_NO_GLOBAL/model_120000"                
-        load_model: False                                          
+        save_model_path: "Expert_SFM_8_T_0_3_EPS_TERM_NO_ROBOT_STATE_CIRCLE_COLLISION_GLOBAL"
+        load_model_path: "Expert_SFM_8_T_0_3_EPS_TERM_NO_ROBOT_STATE_CIRCLE_COLLISION_GLOBAL/model_150000"                
+        load_model: True                                          
 
-        load_replay_buffer_path: "Expert_SFM_8_T_0_3_EPS_TERM_NO_ROBOT_STATE/replay_buffer_100000"
-        load_replay_buffer: False
+        load_replay_buffer_path: "Expert_SFM_8_T_0_3_EPS_TERM_NO_ROBOT_STATE_CIRCLE_COLLISION_GLOBAL/replay_buffer_100000"
+        load_replay_buffer: True
 
         # SAC SB3 related parameters
         replay_buffer_size: 250000 
@@ -324,7 +324,6 @@
      # to create an xml file with navigate_through_poses_<agent_name>.xml for each agent.
     agent_names: 
      - "agent1"
-     - "agent2"
 
      
     ######### TASK GENERATOR PARAMETERS #########
@@ -485,7 +484,7 @@
 
         agent1:
           position:
-            x_pose: [-5.2, -4.8]
+            x_pose: [-5.0, -4.6]
             y_pose: [-0.3, -0.1]
             z_pose: 0.01
           orientation:
@@ -539,8 +538,8 @@
 
         agent1:
           position:
-            x_pose: [-5.2, -5.2]
-            y_pose: [-3.1, -3.1]
+            x_pose: [-5.0, -4.6]
+            y_pose: [-2.8, -2.5]
             z_pose: 0.01
           orientation:
             x: 0.0
@@ -590,8 +589,8 @@
 
         agent1:
           position:
-            x_pose: [3.5, 3.7]
-            y_pose: [1.2, 1.7]
+            x_pose: [-3.3, -3.3]
+            y_pose: [-0.1, -0.0]
             z_pose: 0.01
           orientation:
             x: 0.0
@@ -600,18 +599,14 @@
             w: 0.0
           goals:
             - "g0"
-            - "g1"
-           
           g0:
-            x_pose: 3.5
-            y_pose: 1.7
-          g1:
-            x_pose: -4.514920
-            y_pose: 1.7
+            x_pose: -4.0
+            y_pose: 2.4
+
         agent2:
           position:
-            x_pose: [-3.3, -3.3]
-            y_pose: [-0.1, -0.0]
+            x_pose: [4.4, 4.5]
+            y_pose: [-1.2, -1.1]
             z_pose: 0.01
           orientation:
             x: 0.0
@@ -621,8 +616,8 @@
           goals:
             - "g0"
           g0:
-            x_pose: -4.0
-            y_pose: 2.4
+            x_pose: 4.4
+            y_pose: -1.1
 
 
       overtaking:

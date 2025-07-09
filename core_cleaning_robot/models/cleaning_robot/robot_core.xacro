@@ -79,7 +79,7 @@
 
     <!-- LEFT WHEEL LINK -->
 
-    <joint name="left_wheel_joint" type="continuous">
+    <joint name="wheel_left_joint" type="continuous">
         <parent link="base_link"/>
         <child link="left_wheel"/>
         <origin xyz="-${$(arg length)/2} ${wheel_separation/2} 0" rpy="-${pi/2} 0 0" />
@@ -109,7 +109,7 @@
 
     <!-- RIGHT WHEEL LINK -->
 
-    <joint name="right_wheel_joint" type="continuous">
+    <joint name="wheel_right_joint" type="continuous">
         <parent link="base_link"/>
         <child link="right_wheel"/>
         <origin xyz="-${$(arg length)/2}  -${wheel_separation/2} 0" rpy="${pi/2} 0 0" />

@@ -12,18 +12,21 @@ def main():
 
     # Wait for navigation to fully activate
     navigator.waitUntilNav2Active(localizer=f"{namespace}/planner_server")
+    first_call = True
+    task_points = []
     while rclpy.ok():
-        i = 0
-        navigator.previous_task_number = navigator.task_number
-        task_points = navigator.update_goal()
+        if first_call:
+            i = 0
+            navigator.previous_task_number = navigator.task_number
+            task_points = navigator.update_goal()
+            first_call = False
         navigator.goThroughPoses(task_points)
 
         while not navigator.isTaskComplete():
             if navigator.new_task_requested():
-                new_points = navigator.update_goal()
-                navigator.goThroughPoses(new_points)
+                task_points = navigator.update_goal()
 
-            i = i + 1
+                i = i + 1
 
     navigator.destroy_node()
     rclpy.shutdown()
