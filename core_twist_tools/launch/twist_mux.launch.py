@@ -8,7 +8,8 @@ import os
 
 def generate_launch_description():
 
-    namespace = DeclareLaunchArgument('namespace', default_value='')
+    namespace = DeclareLaunchArgument(
+        'namespace', default_value='cleaning_robot')
     cmd_vel = DeclareLaunchArgument('cmd_vel', default_value='cmd_vel')
     default_config = os.path.join(
         get_package_share_directory('core_twist_tools'),

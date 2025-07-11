@@ -14,11 +14,15 @@
       keyboard:
         topic   : cmd_vel_key
         timeout : 0.5
-        priority: 20
+        priority: 80
       control:
         topic   : cmd_vel_ctrl
         timeout : 0.5
         priority: 10
+      rl:
+        topic   : cmd_vel_rl
+        timeout : 0.5
+        priority: 50
 
     # Locks to stop the twist mux inputs.
     # For each lock:
@@ -35,7 +39,9 @@
       pause:
         topic   : /pause_motion
         timeout : 0.5
-        priority: 100
+        toggle  : True
+        priority: 200
+   
 
     # Publication rate for zero twist
     rate: 20.0

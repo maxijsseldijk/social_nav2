@@ -6,12 +6,12 @@
     },
     "runArgs": [
         //"--runtime=nvidia",
-        //"--gpus=all",
-        "--cap-add=SYS_PTRACE" // Allows the container to trace processes using ptrace system call
+        "--gpus=all",
+        "--cap-add=SYS_PTRACE", // Allows the container to trace processes using ptrace system call
         // "--security-opt=seccomp=unconfined", // Disables seccomp security profiles for the container
-        //"--ipc=host", // Shares the host's IPC namespace with the container
-        // "--network=host" // Shares the host's network namespace with the container
-        // "--pid=host", // Shares the host's PID namespace with the container
+        "--ipc=host", // Shares the host's IPC namespace with the container
+        "--network=host" // Shares the host's network namespace with the container
+        // "--pid=host" // Shares the host's PID namespace with the container
         // "--privileged", // Gives the container full access to the host's devices and allows it to run with root privileges
     ],
     "workspaceMount": "source=${localWorkspaceFolder},target=/docker_ws/src,type=bind",
@@ -51,7 +51,8 @@
                 "ms-vscode.cpptools-extension-pack",
                 "ms-python.tensorboard",
                 "ms-azuretools.vscode-docker",
-                "ms-iot.vscode-ros" //,
+                "Ranch-Hand-Robotics.rde-ros-2",
+                "ms-toolsai.tensorboard"//,
                 //"ms-python.flake8",
                 //"zachflower.uncrustify",
                 //"ms-python.autopep8",

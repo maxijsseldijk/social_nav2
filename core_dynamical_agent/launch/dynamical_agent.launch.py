@@ -12,6 +12,8 @@ import os
 def generate_launch_description():
 
     package_path = get_package_share_directory('core_dynamical_agent')
+    main_path = get_package_share_directory('core_cleaning_robot')
+    map_path = get_package_share_directory('core_gazebo_world')
 
     namespace = LaunchConfiguration('namespace')
     use_sim_time = LaunchConfiguration('use_sim_time')
@@ -36,28 +38,28 @@ def generate_launch_description():
 
     declare_namespace_cmd = DeclareLaunchArgument(
         'namespace',
-        default_value='',
+        default_value='agent1',
         description='Top-level namespace')
 
     declare_map_yaml_cmd = DeclareLaunchArgument(
         'map_yaml_file',
         default_value=os.path.join(
-            package_path, 'maps', 'office_map_bigger', 'office_map.yaml'),
+            map_path, 'maps', 'office_bigger', 'office_map.yaml'),
         description='Full path to map yaml file to load')
 
     declare_use_rl_cmd = DeclareLaunchArgument(
         'use_rl',
-        default_value='False',
+        default_value='True',
         description='Whether to use reinforcement learning to control the robot')
 
     declare_world_cmd = DeclareLaunchArgument(
         'world',
-        default_value='empty',
+        default_value='office_bigger',
         description='Gazebo world name')
 
     declare_use_sim_time_cmd = DeclareLaunchArgument(
         'use_sim_time',
-        default_value='true',
+        default_value='false',
         description='Use simulation (Gazebo) clock if true')
 
     declare_nav2_params_file_cmd = DeclareLaunchArgument(
@@ -100,6 +102,12 @@ def generate_launch_description():
         'use_teleop',
         default_value='False',
         description='Condition to enable the teleop keyboard for the robot.')
+
+    declare_main_parameters_file_cmd = DeclareLaunchArgument(
+        'main_parameters_file',
+        default_value=os.path.join(
+            main_path, 'config', 'main_params.yaml'),
+        description='Full path to the main parameters file to use for all launched nodes')
 
     agent_launch = GroupAction(
         actions=[IncludeLaunchDescription(
@@ -177,6 +185,7 @@ def generate_launch_description():
         declare_use_social_zone_cmd,
         declare_laser_enable_agents_cmd,
         declare_use_teleop_cmd,
+        declare_main_parameters_file_cmd,
 
         agent_launch,
         teleop_keyboard,

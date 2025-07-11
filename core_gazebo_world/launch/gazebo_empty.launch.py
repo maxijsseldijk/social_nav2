@@ -37,7 +37,7 @@ def launch_setup(context):
             os.path.join(get_package_share_directory(
                 'ros_gz_sim'), 'launch', 'gz_sim.launch.py')
         ),
-        launch_arguments={'gz_args': f' -r -s  {world_sdf_filename}'}.items(),
+        launch_arguments={'gz_args': f' -r   {world_sdf_filename}'}.items(),
     )
 
     return [gz_sim_launch]
@@ -46,9 +46,9 @@ def launch_setup(context):
 def generate_launch_description():
 
     namespace = DeclareLaunchArgument(
-        'namespace', default_value='empty', description='Simulation namespace')
+        'namespace', default_value='', description='Simulation namespace')
     world = DeclareLaunchArgument(
-        'world', default_value='empty', description='Gazebo world name')
+        'world', default_value='office_bigger', description='Gazebo world name')
 
     ros_gz_bridge_node = Node(
         package='ros_gz_bridge',

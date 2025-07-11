@@ -242,11 +242,12 @@ def launch_setup(context):
 def generate_launch_description():
 
     pkg_path = get_package_share_directory('core_cleaning_robot')
+    map_path = get_package_share_directory('core_gazebo_world')
 
     # Declare launch arguments
     declare_world_cmd = DeclareLaunchArgument(
         'world',
-        default_value='empty',
+        default_value='office_bigger',
         description='Gazebo world file name')
     declare_width_cmd = DeclareLaunchArgument(
         'width',
@@ -275,23 +276,23 @@ def generate_launch_description():
     declare_slam_map_file_cmd = DeclareLaunchArgument(
         'slam_map',
         default_value=os.path.join(
-            pkg_path, 'maps', 'office_map_bigger', 'office_map'),
+            map_path, 'maps', 'office_bigger', 'office_map,yaml'),
         description='Full path to map file to load. This is without the yaml extention')
 
     declare_use_namespace_cmd = DeclareLaunchArgument(
         'use_namespace',
-        default_value='True',
+        default_value='False',
         description='Whether to apply a namespace to the navigation stack')
 
     declare_namespace_cmd = DeclareLaunchArgument(
         'namespace',
-        default_value='robot',
+        default_value='cleaning_robot',
         description='Top-level namespace')
 
     declare_map_yaml_cmd = DeclareLaunchArgument(
         'map_yaml_file',
         default_value=os.path.join(
-            pkg_path, 'maps', 'office_map_bigger', 'office_map.yaml'),
+            map_path, 'maps', 'office_bigger', 'office_map.yaml'),
         description='Full path to map yaml file to load')
 
     declare_use_sim_time_cmd = DeclareLaunchArgument(
@@ -301,7 +302,8 @@ def generate_launch_description():
 
     declare_params_file_cmd = DeclareLaunchArgument(
         'nav2_params_file',
-        default_value=os.path.join(pkg_path, 'config', 'nav2_params.yaml'),
+        default_value=os.path.join(
+            pkg_path, 'config', 'nav2_params_cleaning_robot.yaml'),
         description='Full path to the ROS2 parameters file to use for all launched nodes')
 
     declare_autostart_cmd = DeclareLaunchArgument(
@@ -313,7 +315,7 @@ def generate_launch_description():
         description='Whether to respawn if a node crashes. Applied when composition is disabled.')
 
     declare_log_level_cmd = DeclareLaunchArgument(
-        'log_level', default_value='warn',
+        'log_level', default_value='info',
         description='log level')
 
     declare_use_social_zone_cmd = DeclareLaunchArgument(
@@ -328,23 +330,28 @@ def generate_launch_description():
 
     declare_use_rl_cmd = DeclareLaunchArgument(
         'use_rl',
-        default_value='False',
+        default_value='True',
         description='Whether to start the rl node')
 
     declare_rl_controller_alg_cmd = DeclareLaunchArgument(
-        'rl_controller_alg', default_value='nav2_rl_planner/HybridRLSMACPlanner',
+        'rl_controller_alg', default_value='rl_pure_pursuit_controller::RlPurePursuitController',
         description='The reinforcement learning algorithm to use')
 
     declare_rl_path_length_cmd = DeclareLaunchArgument(
-        'rl_path_length', default_value='2.0',
+        'rl_path_length', default_value='1.0',
         description='The path length to use for the rl planner')
     declare_rl_path_samples_cmd = DeclareLaunchArgument(
-        'rl_path_samples', default_value='10',
+        'rl_path_samples', default_value='1',
         description='The path samples to use for the rl planner')
 
     declare_rl_action_output_cmd = DeclareLaunchArgument(
-        'rl_action_output', default_value='diff_drive',
+        'rl_action_output', default_value='plan',
         description='The action output to use for the rl planner either plan or diff_drive')
+
+    declare_main_parameters_file_cmd = DeclareLaunchArgument(
+        'main_parameters_file',
+        default_value=os.path.join(pkg_path, 'config', 'main_params.yaml'),
+        description='Full path to the main parameters file to use for all launched nodes')
 
     return LaunchDescription([
 
@@ -370,6 +377,7 @@ def generate_launch_description():
         declare_rl_path_length_cmd,
         declare_rl_path_samples_cmd,
         declare_rl_action_output_cmd,
+        declare_main_parameters_file_cmd,
 
         OpaqueFunction(function=launch_setup),
     ])
