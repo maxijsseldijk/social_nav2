@@ -1,6 +1,6 @@
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, GroupAction
-from launch.conditions import IfCondition
+from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import LaunchConfiguration
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from ament_index_python.packages import get_package_share_directory
@@ -140,6 +140,16 @@ def generate_launch_description():
         },
     )
 
+    publish_odom_node = Node(
+        package='core_dynamical_agent',
+        executable='publish_odom_from_mocap_and_vel',
+        name='publish_odom_from_mocap_and_vel',
+        namespace=namespace,
+        # parameters=[{'use_sim_time': use_sim_time}],
+        output='screen',
+        condition=UnlessCondition(use_sim_time),
+    )
+
     twist_mux = GroupAction(
         actions=[IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
@@ -189,6 +199,7 @@ def generate_launch_description():
 
         agent_launch,
         teleop_keyboard,
+        publish_odom_node,
         twist_mux,
 
     ])

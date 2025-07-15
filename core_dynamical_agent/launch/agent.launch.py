@@ -45,6 +45,7 @@ def launch_setup(context):
 
     map_yaml_file = LaunchConfiguration('map_yaml_file')
     use_sim_time = LaunchConfiguration('use_sim_time')
+    use_sim_time_value = use_sim_time.perform(context)
     agent_names = LaunchConfiguration('agent_names').perform(context)
     nav2_params_file = LaunchConfiguration('nav2_params_file')
     autostart = LaunchConfiguration('autostart')
@@ -54,10 +55,14 @@ def launch_setup(context):
         'laser_enable_agents').perform(context)
 
     # Assume the agents can not collide with each other to do this give the agents
-    # different collide bitmasks
+    # different collide bitmasks ONLY when we are using the simulation
     # Find index of namespace in the agent_names list
-    collide_bitmask = create_non_colliding_bitmask(
-        agent_names, namespace_basename)
+    if use_sim_time_value.lower() == 'true':
+        collide_bitmask = create_non_colliding_bitmask(
+            agent_names, namespace_basename)
+
+    else:
+        collide_bitmask = '0x1'
 
     # Get the robot description from the xacro file
     xacro_file = os.path.join(pkg_path, 'models', 'agent', 'robot.urdf.xacro')
