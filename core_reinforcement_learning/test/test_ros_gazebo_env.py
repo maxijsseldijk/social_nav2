@@ -506,7 +506,8 @@ class TestGazeboEnv(unittest.TestCase):
         # with the other conditions also active.
         self.env.reward_functions = ['goal_reached',
                                      'outside_interaction_range',
-                                     'max_timesteps_reached']
+                                     'max_timesteps_reached',
+                                     'collision']
         info = {'in_interaction_range': True, 'done_reason': [
             'current_collision', 'at_goal', 'future_collision',
             'outside_interaction_range', 'max_timesteps_reached']}

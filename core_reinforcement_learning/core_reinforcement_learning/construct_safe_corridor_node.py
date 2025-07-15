@@ -80,10 +80,11 @@ class SafeCorridor(Node):
         Args:
             boundary_points (list): The list of boundary points to which the circular zone add.
 
-        Returns:
+        Returns
+        -------
             list: The updated list of boundary points with the circular zone appended.
-        """
 
+        """
         angle_increment = 2 * math.pi / self.num_circular_zone_points
         for i in range(self.num_circular_zone_points):
             angle = i * angle_increment
