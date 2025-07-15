@@ -144,13 +144,13 @@ controller_server:
       plugin: "dwb_core::DWBLocalPlanner"
       debug_trajectory_details: True
       forward_prune_distance: 0.7
-      min_vel_x: -1.0
-      min_vel_y: -1.0
-      max_vel_x: 1.0
-      max_vel_y: 1.0
-      max_vel_theta: 1.0
+      min_vel_x: 0.0
+      min_vel_y: 0.0
+      max_vel_x: 0.26
+      max_vel_y: 0.0
+      max_vel_theta: 1.82
       min_speed_xy: 0.0
-      max_speed_xy: 1.26
+      max_speed_xy: 1.27
       min_speed_theta: 0.0
       # Add high threshold velocity for turtlebot 3 issue.
       # https://github.com/ROBOTIS-GIT/turtlebot3_simulations/issues/75

@@ -32,7 +32,7 @@ def launch_setup(context):
 
     radius = LaunchConfiguration('radius').perform(context)
     use_social_zone = LaunchConfiguration('use_social_zone')
-
+    
     height = LaunchConfiguration('height').perform(context)
     world = LaunchConfiguration('world').perform(context)
 
@@ -65,7 +65,9 @@ def launch_setup(context):
         collide_bitmask = '0x1'
 
     # Get the robot description from the xacro file
-    xacro_file = os.path.join(pkg_path, 'models', 'agent', 'robot.urdf.xacro')
+    xacro_file = os.path.join(
+            pkg_path, 'models', 'turtle_bot', 'core_turtlebot3_waffle_pi', 'model.sdf.xacro')
+
     robot_description_config = xacro.process_file(xacro_file,
                                                   mappings={
                                                       'name': namespace_value,
