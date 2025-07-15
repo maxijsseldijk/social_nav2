@@ -5,7 +5,7 @@ from launch.substitutions import LaunchConfiguration
 from launch.actions import DeclareLaunchArgument, OpaqueFunction, \
     GroupAction, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.conditions import IfCondition
+from launch.conditions import IfCondition, UnlessCondition
 from launch_ros.actions import Node
 import xacro
 # Function to setup the launch
@@ -199,9 +199,12 @@ def launch_setup(context):
             'rl_action_output': rl_action_output,
             'use_respawn': use_respawn,
             'use_social_zone_robot': use_social_zone_robot,
+            'use_slam': use_slam,
             'log_level': log_level,
 
         },
+        condition=UnlessCondition(use_slam)
+
     )
 
     slam_cmd = GroupAction(
@@ -209,7 +212,6 @@ def launch_setup(context):
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
                     os.path.join(launch_dir, 'slam_launch.py')),
-                condition=IfCondition(use_slam.perform(context)),
             )
         ],
         scoped=True,
@@ -223,6 +225,7 @@ def launch_setup(context):
             'log_level': log_level,
 
         },
+        condition=IfCondition(use_slam)
     )
 
     return [

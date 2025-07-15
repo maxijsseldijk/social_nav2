@@ -4,7 +4,6 @@ from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.actions import PushRosNamespace
@@ -18,7 +17,6 @@ def generate_launch_description():
     bringup_dir = get_package_share_directory('core_cleaning_robot')
 
     namespace = LaunchConfiguration('namespace')
-    use_namespace = LaunchConfiguration('use_namespace')
     use_sim_time = LaunchConfiguration('use_sim_time')
     slam_params_file = LaunchConfiguration('slam_params_file')
     slam_map_file = LaunchConfiguration('slam_map')
@@ -26,8 +24,8 @@ def generate_launch_description():
 
     namespaced_params_file_slam = ReplaceString(
         source_file=slam_params_file,
-        replacements={'<robot_namespace>': (namespace)},
-        condition=IfCondition(use_namespace)),
+        replacements={'<robot_namespace>': (namespace)}
+    ),
 
     param_substitutions_slam = {
         'map_file_name': slam_map_file,
@@ -93,8 +91,6 @@ def generate_launch_description():
         declare_use_sim_time_cmd,
         declare_log_level_cmd,
 
-        PushRosNamespace(
-            condition=IfCondition(use_namespace),
-            namespace=namespace),
+        PushRosNamespace(namespace=namespace),
         slam_toolbox
     ])

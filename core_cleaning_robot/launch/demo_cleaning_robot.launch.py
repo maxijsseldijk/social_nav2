@@ -126,8 +126,13 @@ def generate_launch_description():
         package_path, get_yaml_param(params, 'slam_params_file')))
     slam_map = LaunchConfiguration('slam_map', default=os.path.join(
         package_path_world, get_yaml_param(params, 'slam_map')))
-    map_yaml_file = LaunchConfiguration('map_yaml_file', default=os.path.join(
-        package_path_world, f"{get_yaml_param(params, 'map_yaml_file')}.yaml"))
+
+    if get_yaml_param(params, 'map_yaml_file'):
+        map_yaml_file = LaunchConfiguration('map_yaml_file', default=os.path.join(
+            package_path_world, f"{get_yaml_param(params, 'map_yaml_file')}.yaml"))
+    else:
+        map_yaml_file = LaunchConfiguration('map_yaml_file', default='')
+
     use_sim_time = LaunchConfiguration(
         'use_sim_time', default=get_yaml_param(params, 'use_sim_time'))
     nav2_params_file_robot = LaunchConfiguration('nav2_params_file_robot', default=os.path.join(
@@ -218,7 +223,9 @@ def generate_launch_description():
             'namespace': namespace,
             'world': world,
         },
+
     )
+
     # Define commands for launching the navigation instances
     agent_instances_cmd = []
 

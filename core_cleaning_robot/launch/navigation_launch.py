@@ -17,7 +17,6 @@ from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, GroupAction
-from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node, PushRosNamespace
 from launch_ros.descriptions import ParameterFile
@@ -36,7 +35,6 @@ def launch_func(context):
     autostart = LaunchConfiguration('autostart')
     use_respawn = LaunchConfiguration('use_respawn')
     log_level = LaunchConfiguration('log_level')
-    use_rl = LaunchConfiguration('use_rl')
     rl_controller_alg = LaunchConfiguration(
         'rl_controller_alg').perform(context)
     trim_controller_name = rl_controller_alg.split('::')[-1]
@@ -69,10 +67,8 @@ def launch_func(context):
                       '<rl_path_length>': rl_path_length,
                       '<rl_path_samples>': rl_path_samples,
                       '<rl_action_output>': rl_action_output,
-                      '<use_social_zone_robot>': use_social_zone_robot},
-
-
-        condition=IfCondition(use_rl)),
+                      '<use_social_zone_robot>': use_social_zone_robot}
+    ),
 
     param_substitutions_nav2 = {
         'use_sim_time': use_sim_time,
@@ -276,7 +272,6 @@ def generate_launch_description():
         declare_rl_path_length_cmd,
         declare_rl_path_samples_cmd,
         declare_rl_action_output_cmd,
-
         PushRosNamespace(namespace=namespace),
 
         OpaqueFunction(function=launch_func)
