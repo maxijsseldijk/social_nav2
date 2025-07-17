@@ -568,7 +568,7 @@ class TestGazeboEnv(unittest.TestCase):
         self.env.rl_io_manager.last_robot_odom = np.array(
             [[0.0, 0.0, 0.0, 0.0, 0.0]])  # Robot position and velocity
         result = self.env._GazeboEnv__any_agent_in_interaction_range()
-        self.assertFalse(result)
+        self.assertEqual(result, [])
 
         # Test 2: Agent is outside interaction range
         self.env.rl_io_manager.last_agents_global_frame = np.array(
@@ -576,12 +576,12 @@ class TestGazeboEnv(unittest.TestCase):
         self.env.rl_io_manager.last_robot_odom = np.array(
             [[0.0, 0.0, 0.0, 0.0, 0.0]])  # Robot position and velocity
         result = self.env._GazeboEnv__any_agent_in_interaction_range()
-        self.assertFalse(result)
+        self.assertEqual(result, [])
 
         # Test 3: No agents in the environment
         self.env.rl_io_manager.last_agents_global_frame = None
         result = self.env._GazeboEnv__any_agent_in_interaction_range()
-        self.assertTrue(result)
+        self.assertEqual(result, [-1])
 
         # Test 4: Agent is in critical interaction range
         self.env.rl_io_manager.last_agents_global_frame = np.array(
@@ -589,7 +589,24 @@ class TestGazeboEnv(unittest.TestCase):
         self.env.rl_io_manager.last_robot_odom = np.array(
             [[0.0, 0.0, 0.0, 0.0, 0.0]])  # Robot position and velocity
         result = self.env._GazeboEnv__any_agent_in_interaction_range()
-        self.assertTrue(result)
+        self.assertEqual(result, [0])
+
+        # Test 4a: Check functioning with multiple agents in the environment critical range
+        self.env.rl_io_manager.last_agents_global_frame = np.array(
+            [[0.5, 0.5, 0.0, 0.0], [10.0, 10.0, 0.0, 0.0]])  # Agent position and velocity
+        self.env.rl_io_manager.last_robot_odom = np.array(
+            [[0.0, 0.0, 0.0, 0.0, 0.0]])  # Robot position and velocity
+        result = self.env._GazeboEnv__any_agent_in_interaction_range()
+
+        self.assertEqual(result, [0])
+
+        # Test 4b: Check functioning with multiple agents swapped
+        self.env.rl_io_manager.last_agents_global_frame = np.array(
+            [[10.0, 10.0, 0.0, 0.0], [0.5, 0.5, 0.0, 0.0]])  # Agent position and velocity
+        self.env.rl_io_manager.last_robot_odom = np.array(
+            [[0.0, 0.0, 0.0, 0.0, 0.0]])  # Robot position and velocity
+        result = self.env._GazeboEnv__any_agent_in_interaction_range()
+        self.assertEqual(result, [1])
 
         # Test 5: Agent is outside critical range but moving towards robot.
         self.env.rl_io_manager.last_agents_global_frame = np.array(
@@ -597,7 +614,7 @@ class TestGazeboEnv(unittest.TestCase):
         self.env.rl_io_manager.last_robot_odom = np.array(
             [[0.0, 0.0, 0.0, 0.5, 0.5]])  # Robot position and velocity
         result = self.env._GazeboEnv__any_agent_in_interaction_range()
-        self.assertTrue(result)
+        self.assertEqual(result, [0])
 
         # Test 6: Agent is in line of sight but not moving towards the robot
         self.env.rl_io_manager.last_agents_global_frame = np.array(
@@ -605,7 +622,7 @@ class TestGazeboEnv(unittest.TestCase):
         self.env.rl_io_manager.last_robot_odom = np.array(
             [[0.0, 0.0, 0.0, -0.5, -0.5]])  # Robot position and velocity
         result = self.env._GazeboEnv__any_agent_in_interaction_range()
-        self.assertFalse(result)
+        self.assertEqual(result, [])
 
         # Test 7: see if steps before switch to NAV2 works as expected.
         self.env.rl_io_manager.last_agents_global_frame = np.array(
@@ -613,7 +630,7 @@ class TestGazeboEnv(unittest.TestCase):
         self.env.rl_io_manager.last_robot_odom = np.array(
             [[0.0, 0.0, 0.0, 0.5, 0.5]])  # Robot position and velocity
         result = self.env._GazeboEnv__any_agent_in_interaction_range()
-        self.assertTrue(result)
+        self.assertEqual(result, [0])
 
         # Test 8: Check override if timesteps is smaller than timesteps_before_interaction
         self.env.timesteps_before_interaction = 10
@@ -622,7 +639,7 @@ class TestGazeboEnv(unittest.TestCase):
         self.env.rl_io_manager.last_robot_odom = np.array(
             [[0.0, 0.0, 0.0, 0.0, 0.0]])  # Robot position and velocity
         result = self.env._GazeboEnv__any_agent_in_interaction_range()
-        self.assertTrue(result)
+        self.assertEqual(result, [-1])
 
     def test_lidar_collision_check(self):
         """Test the __lidar_collision_check function."""
@@ -652,6 +669,32 @@ class TestGazeboEnv(unittest.TestCase):
         self.env.rl_io_manager.last_lidar = np.array([])
         result = self.env._GazeboEnv__lidar_collision_check()
         self.assertFalse(result)
+
+    def test_is_done(self):
+        # Test 4b: Check functioning with multiple agents swapped
+        self.env.rl_io_manager.last_agents_global_frame = np.array(
+            [[10.0, 10.0, 0.0, 0.0], [0.5, 0.5, 0.0, 0.0],
+             [1.5, 0.5, 3.0, 0.0],  [1.5, 1.5, -1.0, -1.0]])  # Agent position and velocity
+        self.env.rl_io_manager.last_robot_odom = np.array(
+            [[0.0, 0.0, 0.0, 0.0, 0.0]])  # Robot position and velocity
+        self.env.robot_radius_sqr = 0.5  # Robot radius squared
+        self.env.collision_footprint_factor = 1.42
+        self.env.rl_io_manager.last_plan_length = 4.0
+        self.env.timesteps_before_interaction = 0
+
+        # Test 1: Collision detected (point inside the threshold)
+        self.env.rl_io_manager.last_lidar = np.array([[0.1, 0.1]])
+        result = self.env._is_done(False)
+        self.assertEqual(result, (True, False, 'current_collision', True))
+
+        # Test 2: No agents in interaction range
+        self.env.rl_io_manager.last_lidar = np.array([[5.1, 5.1]])
+
+        self.env.rl_io_manager.last_agents_global_frame = np.array(
+            [[10.0, 10.0, 0.0, 0.0], [10.5, 10.5, 0.0, 0.0]])  # Agent position and velocity
+        result = self.env._is_done(False)
+        self.assertEqual(
+            result, (True, False, 'outside_interaction_range', False))
 
     def test_all_agents_outside_range(self):
         """Test the _all_agents_outside_range function."""

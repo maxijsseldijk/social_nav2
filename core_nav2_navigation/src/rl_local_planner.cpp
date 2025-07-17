@@ -141,9 +141,16 @@ void RLLocalPlanner::configure(
 
   inside_interaction_range_msg_ = nullptr;
 
-  inside_interaction_range_ = node->create_subscription<std_msgs::msg::Bool>(
-    "/in_interaction_range", 1,
-    [this](const std_msgs::msg::Bool::SharedPtr msg) { inside_interaction_range_msg_ = msg; });
+  inside_interaction_range_ = node->create_subscription<std_msgs::msg::Int8MultiArray>(
+    "/in_interaction_range", 1, [this](const std_msgs::msg::Int8MultiArray::SharedPtr msg) {
+      inside_interaction_range_msg_ = std::make_shared<std_msgs::msg::Bool>();
+      if (msg->data.empty()) {
+        inside_interaction_range_msg_->data = false;
+        RCLCPP_ERROR(logger_, "No agents in interaction range, set to false.");
+      } else {
+        inside_interaction_range_msg_->data = true;
+      }
+    });
 
   local_path_pub_rviz_ =
     node->create_publisher<nav_msgs::msg::Path>(namespace_ + "/local_path_rviz", 1);

@@ -13,6 +13,7 @@ from rclpy.duration import Duration
 from rclpy.qos import QoSProfile, QoSDurabilityPolicy, QoSReliabilityPolicy
 from scipy.spatial import ConvexHull
 from std_msgs.msg import Bool as BoolMsg
+from std_msgs.msg import Int8MultiArray as Int8MultiMsg
 from nav2_simple_commander.costmap_2d import PyCostmap2D
 
 from core_custom_messages.msg import Int32Stamped
@@ -877,7 +878,7 @@ class GazeboEnv(BaseClassEnv):
         self.sim_time = 0.0
 
         self.publish_if_in_interaction_range = self.node.create_publisher(
-            BoolMsg, '/in_interaction_range', 1)
+            Int8MultiMsg, '/in_interaction_range', 1)
         if not self.reset_on_exit_interaction_range:
             self.timesteps_before_interaction = 0
             self.timesteps_before_switch_to_nav2 = 0
@@ -1158,7 +1159,7 @@ class GazeboEnv(BaseClassEnv):
             return np.array([True] * agents_global_frame.shape[0])
 
     def __check_interaction_conditions(self, location_vector, dot_robot_agent,
-                                       dot_location_yaw):
+                                       dot_location_yaw) -> np.ndarray:
         """
         Check the interaction conditions for each entry in the location_vector.
 
@@ -1170,31 +1171,34 @@ class GazeboEnv(BaseClassEnv):
 
         Returns
         -------
-            bool: True if any of the conditions are met, False otherwise.
+            np.ndarray: Returns id of agents that are in the interaction range.
 
         """
+        agents_in_interaction = np.array([], dtype=np.int8)
         for i in range(location_vector.shape[0]):
             if np.linalg.norm(location_vector[i]) < self.interaction_range:
-                if dot_robot_agent[i] < -0.1 and dot_location_yaw[i] > 0:
+
+                if np.linalg.norm(location_vector[i]) < self.critical_interaction_range:
+                    # If agent is within a certain range there is an interaction.
+                    self.steps_outside_interaction_range = 0
+                    agents_in_interaction = np.append(agents_in_interaction, i)
+
+                elif dot_robot_agent[i] < -0.1 and dot_location_yaw[i] > 0:
                     # Agent is in front of the agent and moving towards the robot
                     self.steps_outside_interaction_range = 0
-                    return True
+                    agents_in_interaction = np.append(agents_in_interaction, i)
 
                 elif dot_robot_agent[i] > 0.1 and dot_location_yaw[i] < 0:
                     # Agent is behind the robot and moving towards the robot.
                     # Less critical as the robot can move away from the agent.
                     self.steps_outside_interaction_range = 0
-                    return True
 
-                if np.linalg.norm(location_vector[i]) < self.critical_interaction_range:
-                    # If agent is within a certain range there is an interaction.
-                    self.steps_outside_interaction_range = 0
-                    return True
+                    agents_in_interaction = np.append(agents_in_interaction, i)
 
         # No interaction within the interaction range
-        return False
+        return agents_in_interaction
 
-    def __any_agent_in_interaction_range(self) -> bool:
+    def __any_agent_in_interaction_range(self) -> list[int]:
         """
         Check if an agent is within a certain interaction range of the robot.
 
@@ -1206,17 +1210,21 @@ class GazeboEnv(BaseClassEnv):
 
         Returns
         -------
-            bool: True if the agent is within the interaction range, False otherwise.
-              Also returns True if in the first few timesteps to prevent problems in initialization
-            If agents_global_frame is None, the function will also return True.
+            list[int]: Returns list of agents in the interaction range.
+            If empty there is no interaction.
+            Also returns non empty list with value 0 for
+            self.timesteps_before_interaction timesteps to help with initialization.
+            By doing this we keep the RL running even if there is no agents in
+            sight. Similar for self.timesteps_before_switch_to_nav2 to prevent twitching.
+            If agents_global_frame is None, the function will also return all agents ids.
 
         """
         agents_global_frame = self.rl_io_manager.last_agents_global_frame
         robot_odom = self.rl_io_manager.last_robot_odom
-
         if (self.trial_time_step < self.timesteps_before_interaction
                 or agents_global_frame is None):
-            return True
+
+            return [-1]
 
         agents_in_sight = self.__get_line_of_sight(
             robot_odom, agents_global_frame)
@@ -1236,18 +1244,21 @@ class GazeboEnv(BaseClassEnv):
         # If positive means the agent location is in front of the robot
         dot_location_yaw = np.dot(location_vector, robot_yaw_vector)
 
+        agents_positive_cond = self.__check_interaction_conditions(location_vector,
+                                                                   dot_robot_agent,
+                                                                   dot_location_yaw)
+
         if not np.any(agents_in_sight):
             self.steps_outside_interaction_range += 1
 
-        elif not self.__check_interaction_conditions(location_vector, dot_robot_agent,
-                                                     dot_location_yaw):
+        elif not agents_positive_cond.size:
             self.steps_outside_interaction_range += 1
 
         if self.steps_outside_interaction_range <= self.timesteps_before_switch_to_nav2:
-            return True
+            return agents_positive_cond.tolist()
 
         else:
-            return False
+            return []
 
     def _all_agents_outside_range(self):
         """
@@ -1292,32 +1303,33 @@ class GazeboEnv(BaseClassEnv):
 
         """
         current_collision = self.__lidar_collision_check()
-        in_interaction_range = self.__any_agent_in_interaction_range()
+        agents_in_interaction_range = self.__any_agent_in_interaction_range()
+        any_agents_in_range = True if agents_in_interaction_range else False
         # To plot in evaluation the true in interaction range is needed
-        self.in_interaction_range = in_interaction_range
+        self.in_interaction_range = any_agents_in_range
 
         if not self.reset_on_exit_interaction_range:
             # If the agent is allowed to move outside the interaction range,
             # the episode is not terminated if the agent is outside the interaction range
             self.publish_if_in_interaction_range.publish(
-                BoolMsg(data=in_interaction_range))
+                Int8MultiMsg(data=agents_in_interaction_range))
             # If the agent is outside the interaction range the episode is not terminated even
             # if RL yield collision path
             agents_msg_outside_range = self._all_agents_outside_range()
 
-            if not in_interaction_range or agents_msg_outside_range:
+            if not any_agents_in_range or agents_msg_outside_range:
                 future_collision = False
 
-            in_interaction_range = True
+            any_agents_in_range = True
 
         else:
-            in_interaction_range = in_interaction_range
+            any_agents_in_range = any_agents_in_range
 
         at_goal = self._check_if_at_goal()
 
         max_timesteps_reached = self.trial_time_step >= self.max_trial_timesteps
         truncated = max_timesteps_reached
-        terminated = current_collision or not in_interaction_range or at_goal
+        terminated = current_collision or not any_agents_in_range or at_goal
 
         if max_timesteps_reached:
             done_reason = "max_timesteps_reached"
@@ -1325,7 +1337,7 @@ class GazeboEnv(BaseClassEnv):
             done_reason = "current_collision"
         elif future_collision:
             done_reason = "future_collision"
-        elif not in_interaction_range:
+        elif not any_agents_in_range:
             done_reason = "outside_interaction_range"
         elif at_goal:
             done_reason = "at_goal"

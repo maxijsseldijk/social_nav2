@@ -6,7 +6,7 @@ from rclpy.duration import Duration
 import random
 from geometry_msgs.msg import Point, PoseStamped, Vector3Stamped
 from nav_msgs.msg import Odometry
-from std_msgs.msg import Bool as BoolMsg
+from std_msgs.msg import Int8MultiArray as Int8MultiMsg
 from people_msgs.msg import People, Person
 from rclpy.node import Node
 from rclpy.exceptions import ROSInterruptException
@@ -70,10 +70,10 @@ class PublishAgentsVelocity(Node):
 
         self.received_messages = {}
         self.untransformed_messages = {}
-        self.in_interaction_range = True
+        self.in_interaction_range = []
 
         self.create_subscription(
-            BoolMsg, '/in_interaction_range', self.in_interaction_range_callback, 1)
+            Int8MultiMsg, '/in_interaction_range', self.in_interaction_range_callback, 1)
 
         for i, agent in enumerate(self.agents):
             self.received_messages[i + 1] = []
@@ -104,7 +104,7 @@ class PublishAgentsVelocity(Node):
                     if msg[0] == 0 or msg[1] == 0:
                         # Skip the message if the transform is not available
                         continue
-                    if not self.in_interaction_range:
+                    if not (list_message.index(buffer) in self.in_interaction_range):
                         msg_pose_x = OUTSIDE_RANGE_LOC
                         msg_pose_y = OUTSIDE_RANGE_LOC
                         msg_vel_x = OUTSIDE_RANGE_VELOCITY
@@ -180,7 +180,7 @@ class PublishAgentsVelocity(Node):
                     self.people_msg.people.append(person)
             self.publisher_untransformed.publish(self.people_msg)
 
-    def in_interaction_range_callback(self, msg: BoolMsg):
+    def in_interaction_range_callback(self, msg: Int8MultiMsg):
         """
         Process message to update the interaction range status.
 

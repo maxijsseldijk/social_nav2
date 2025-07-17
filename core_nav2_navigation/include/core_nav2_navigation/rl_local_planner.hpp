@@ -11,7 +11,7 @@
 #include "rl_pure_pursuit_controller/rl_pure_pursuit_controller.hpp"
 #include "social_force_window_planner/sfw_planner_node.hpp"
 #include "std_msgs/msg/bool.hpp"
-
+#include "std_msgs/msg/int8_multi_array.hpp"
 namespace nav2_rl_local_planner
 {
 class RLLocalPlanner : public nav2_core::Controller
@@ -104,7 +104,7 @@ protected:
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr local_path_pub_rviz_;
   rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr path_subscription_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr imitation_learning_training_;
-  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr inside_interaction_range_;
+  rclcpp::Subscription<std_msgs::msg::Int8MultiArray>::SharedPtr inside_interaction_range_;
   std::shared_ptr<std_msgs::msg::Bool> imitation_learning_training_msg_;
   std::shared_ptr<std_msgs::msg::Bool> inside_interaction_range_msg_;
   std::shared_ptr<nav_msgs::msg::Path> reinforcement_learning_path_;
