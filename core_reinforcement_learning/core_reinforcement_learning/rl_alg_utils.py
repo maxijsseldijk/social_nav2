@@ -12,6 +12,16 @@ if TYPE_CHECKING:
     from stable_baselines3.common.vec_env import DummyVecEnv
 
 
+class BufferSAC(SAC):
+    """Wrapper over SAC to modify the store_transition to remove outside_interaction data."""
+
+    def _store_transition(self, replay_buffer, buffer_action, new_obs, reward, dones, infos):
+        if all(not any(info.get('in_interaction_range')) for info in infos):
+            return
+        return super()._store_transition(replay_buffer, buffer_action,
+                                         new_obs, reward, dones, infos)
+
+
 class SaveOnInterval(BaseCallback):
     """Callback for saving a model every ``save_freq`` steps."""
 
@@ -165,24 +175,26 @@ def return_sb3_model(rl_sim_node: 'RLsimulation', wrap_env: 'DummyVecEnv'):
             rl_sim_node.log_error(
                 f"RL model path: {train_params['save_model_path'].value}")
 
-            model = SAC('MlpPolicy', wrap_env, gamma=train_params['gamma'].value,
-                        learning_rate=linear_schedule(
-                            train_params['policy_lr'].value),
-                        buffer_size=train_params['replay_buffer_size'].value,
-                        learning_starts=train_params['learning_starts'].value,
-                        batch_size=train_params['batch_size'].value,
-                        use_sde=train_params['use_sde'].value,
-                        sde_sample_freq=train_params['sde_sample_freq'].value,
-                        use_sde_at_warmup=train_params['use_sde_at_warmup'].value,
-                        tau=train_params['tau'].value, ent_coef=train_params['ent_coef'].value,
-                        train_freq=train_params['train_freq'].value,
-                        target_update_interval=train_params['target_update_interval'].value,
-                        gradient_steps=train_params['gradient_steps'].value,
-                        target_entropy=train_params["target_entropy"].value,
-                        action_noise=None, verbose=train_params['verbose'].value,
-                        tensorboard_log=f'runs/{train_params["save_model_path"].value}',
-                        policy_kwargs=policy_kwargs, seed=rl_sim_node.seed, device='auto',
-                        _init_setup_model=True)
+            model = BufferSAC('MlpPolicy',
+                              wrap_env, gamma=train_params['gamma'].value,
+                              learning_rate=linear_schedule(
+                                  train_params['policy_lr'].value),
+                              buffer_size=train_params['replay_buffer_size'].value,
+                              learning_starts=train_params['learning_starts'].value,
+                              batch_size=train_params['batch_size'].value,
+                              use_sde=train_params['use_sde'].value,
+                              sde_sample_freq=train_params['sde_sample_freq'].value,
+                              use_sde_at_warmup=train_params['use_sde_at_warmup'].value,
+                              tau=train_params['tau'].value,
+                              ent_coef=train_params['ent_coef'].value,
+                              train_freq=train_params['train_freq'].value,
+                              target_update_interval=train_params['target_update_interval'].value,
+                              gradient_steps=train_params['gradient_steps'].value,
+                              target_entropy=train_params["target_entropy"].value,
+                              action_noise=None, verbose=train_params['verbose'].value,
+                              tensorboard_log=f'runs/{train_params["save_model_path"].value}',
+                              policy_kwargs=policy_kwargs, seed=rl_sim_node.seed, device='auto',
+                              _init_setup_model=True)
 
             if train_params['load_model'].value and train_params['load_model_path'] is not None:
                 try:
