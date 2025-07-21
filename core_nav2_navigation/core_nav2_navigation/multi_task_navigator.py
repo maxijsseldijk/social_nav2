@@ -17,8 +17,8 @@
 from enum import Enum
 import os
 import time
+import numpy as np
 from copy import deepcopy
-from std_msgs.msg import Int32
 from core_custom_messages.msg import Int32Stamped
 from action_msgs.msg import GoalStatus
 from builtin_interfaces.msg import Duration
@@ -70,8 +70,14 @@ class MultiTaskNavigator(Node):
         self.feedback = None
         self.status = None
 
+        self.seed = self.get_parameter('seed').value
+
         self.get_logger().info('Follow Waypoints Node Started')
         self.params = self.get_parameters_by_prefix('TaskGenerator')
+        # As each
+        self.rng = np.random.default_rng(self.seed)
+        self.get_logger().error(
+            f'seed test {self.seed}{self.rng.integers(0,100)}')
         qos_profile_task = QoSProfile(depth=1)
         qos_profile_task.durability = QoSDurabilityPolicy.VOLATILE
 
@@ -159,17 +165,22 @@ class MultiTaskNavigator(Node):
         self.task_number_timestamp = msg.header.stamp
         if self.task_number_timestamp != self.previous_task_timestamp:
             self.task_number = msg.data
-            self.error(
+            self.info(
                 f'Task number updated to {self.task_number} at {self.task_number_timestamp}')
 
     def new_task_requested(self) -> bool:
         return self.task_number_timestamp != self.previous_task_timestamp
 
+    def sample_goal_pose(self, goal: list[float] | float) -> float:
+        goal_typed = self.get_value(goal)
+        return self.rng.uniform(
+            goal_typed[0], goal_typed[1]) if len(goal_typed) == 2 else goal_typed[0]
+
     def update_goal(self) -> list[PoseStamped]:
         """Update the goal based on the current task."""
         self.cancelTask()
         self.previous_task_timestamp = self.task_number_timestamp
-        self.error(
+        self.info(
             f'Updating goal for task number {self.task_number} at {self.task_number_timestamp}')
         trimmed_namespace = os.path.basename(
             os.path.normpath(self.get_namespace()))
@@ -179,12 +190,12 @@ class MultiTaskNavigator(Node):
         task_route = []
         for point_name in trajectory:
             task_route.append([
-                self.params[
+                self.sample_goal_pose(self.params[
                     f'{self.task_list[self.task_number]}.{trimmed_namespace}.{point_name}.x_pose'
-                ].value,
-                self.params[
+                ].value),
+                self.sample_goal_pose(self.params[
                     f'{self.task_list[self.task_number]}.{trimmed_namespace}.{point_name}.y_pose'
-                ].value
+                ].value)
             ])
         task_points = self.create_pose_from_route(task_route)
         return task_points

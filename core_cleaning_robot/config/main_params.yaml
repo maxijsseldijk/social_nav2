@@ -30,8 +30,7 @@
       rl_algorithm: "SAC"                       #The RL algorithm to use. Currently only SAC is supported.   
       time_steps: 150000
       action_bounds: [-1.0, 1.0]                #The bounds for the actions that the RL algorithm can take. Either maximum velocity or maximum distance depending on action type.
-      seed: 1                                   #The seed for the random number generator
-      train: False                               #Determines if the RL algorithm should be trained or evaluated
+      train: True                               #Determines if the RL algorithm should be trained or evaluated
       time_step_length: 0.3                     #The length of a timestep in seconds  
       reward_averaging: False                    #Determines if the reward should be averaged over the number of timesteps. Note can cause small error in pause time.
       reward_samples_per_timestep: 5            #The number of samples to use for the reward per timestep if reward averaging is used
@@ -116,7 +115,7 @@
 
         # SAC SB3 related parameters
         replay_buffer_size: 250000 
-        learning_starts: 0               
+        learning_starts: 1000               
         net_arch: [128, 128]
         target_update_interval: 1
         train_freq: 2                  
@@ -126,7 +125,7 @@
         verbose: 1
         batch_size:  16
         ent_coef: 'auto_0.5'            
-        target_entropy: -4.0
+        target_entropy: -8.0
         gamma: 0.99                    
         tau: 0.005                     
         policy_lr: 0.0003
@@ -250,6 +249,7 @@
     # the XML_BT for the dynamical agents needs to be adjusted by hand due to a bug in 
     # the reading of the yaml parameters with the BT.
     use_namespace: False
+    seed: 1                                   #The seed for the random number generator
     use_sim_time: True
     world: 'office_bigger'
     log_level: 'error'
