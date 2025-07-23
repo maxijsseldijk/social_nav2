@@ -55,8 +55,9 @@ class BaseClassEnv(gym.Env, ABC):
 
         """
         self.rl_io_manager = RlSubscriptionManager(node)
-        self.rng: np.random.Generator = kwargs.get('rng', 0)
         self.seed = kwargs.get('seed', 0)
+        self.rng: np.random.Generator = kwargs.get(
+            'rng',  np.random.default_rng(self.seed))
         self.node = node
         self.train = self.node.get_parameter('train').value
 
@@ -71,7 +72,11 @@ class BaseClassEnv(gym.Env, ABC):
             'TaskGenerator')
         self.task_number = self.TaskGenerator['init_task_number'].value
         self.task_list = self.TaskGenerator['task_list'].value
+        self.task_list_eval = self.TaskGenerator['task_list_eval'].value
         self.number_of_tasks = len(self.task_list)
+        self.number_of_eval_tasks = len(self.task_list_eval)
+        self.train_tasks = np.delete(
+            np.arange(self.number_of_tasks), self.task_list_eval)
 
         # Reward related parameters
         self.max_trial_timesteps = self.node.get_parameter(
@@ -217,6 +222,8 @@ class BaseClassEnv(gym.Env, ABC):
         self.action_space = None
         self.observation_space = None
         self.first_reset = True
+        self.at_goal_time = 0
+        self.time_not_moving = 0
 
     def __add_requirements(self, requirements: np.ndarray):
         """
@@ -449,10 +456,29 @@ class BaseClassEnv(gym.Env, ABC):
         """
         goal_params = self.node.get_parameters_by_prefix('goal_reached')
         goal_threshold = goal_params['goal_threshold'].value
+        at_goal_time_threshold = goal_params['at_goal_time_threshold'].value
         if self.rl_io_manager.last_plan_length < goal_threshold:
+            self.at_goal_time += 1
+
+        if self.at_goal_time >= at_goal_time_threshold:
+            self.at_goal_time = 0
             return True
         else:
             return False
+
+    def _is_timed_out(self) -> bool:
+        robot_velocity = self.rl_io_manager.last_robot_odom.flatten()[3:4]
+        tout_params = self.node.get_parameters_by_prefix('timed_out')
+        time_out_lim = tout_params['time_out_limit'].value
+
+        if np.allclose(robot_velocity, [0.0, 0.0]):
+            self.time_not_moving += 1
+        else:
+            self.time_not_moving = 0
+        if self.time_not_moving >= time_out_lim:
+            self.time_not_moving = 0
+            return True
+        return False
 
     @abstractmethod
     def _reward_function(self, action: np.ndarray, info: dict) -> float:
@@ -1327,9 +1353,11 @@ class GazeboEnv(BaseClassEnv):
 
         at_goal = self._check_if_at_goal()
 
+        timed_out = self._is_timed_out()
+
         max_timesteps_reached = self.trial_time_step >= self.max_trial_timesteps
-        truncated = max_timesteps_reached
-        terminated = current_collision or not any_agents_in_range or at_goal
+        truncated = max_timesteps_reached or not any_agents_in_range or timed_out
+        terminated = current_collision or at_goal
 
         if max_timesteps_reached:
             done_reason = "max_timesteps_reached"
@@ -1337,12 +1365,14 @@ class GazeboEnv(BaseClassEnv):
             done_reason = "current_collision"
         elif future_collision:
             done_reason = "future_collision"
+        elif timed_out:
+            done_reason = "timed_out"
         elif not any_agents_in_range:
             done_reason = "outside_interaction_range"
         elif at_goal:
             done_reason = "at_goal"
         else:
-            done_reason = "Not done"
+            done_reason = "not_done"
 
         return terminated, truncated, done_reason, self.in_interaction_range
 
@@ -1709,6 +1739,46 @@ class GazeboEnv(BaseClassEnv):
             self.pause_node.change_pause_simulation(pause=False)
         return reward_list, terminated_list, truncated_list
 
+    def update_task_number(self) -> int:
+        """
+        Select and update the current task number for training or evaluation.
+
+        In training mode, randomly selects a task from the training set unless this is the
+        first reset, in which case the initial task number is used if valid. In evaluation mode,
+        cycles through the evaluation task list in order.
+
+        Returns
+        -------
+            int: The selected task number.
+
+        Raises
+        ------
+            ValueError: If the initial task number is not in the training set in the first reset.
+
+        """
+        task_number = self.task_number
+        if not self.eval_mode:
+            if self.first_reset:
+                if task_number in self.train_tasks:
+                    # First task number is initial task number set in __init__
+                    self.first_reset = False
+                else:
+                    raise ValueError("Requested first task is in the eval set please select a"
+                                     f" value in {self.train_tasks}")
+            else:
+                task_number = self.rng.choice(
+                    self.train_tasks)
+        else:
+            if task_number not in self.task_list_eval:
+                self.node.get_logger().warn('Selected init_task number is different from eval list'
+                                            'consider changing it to prevent first episode issues')
+            task_index = int(
+                np.floor(self.eval_step / self.num_trials_scenario))
+            task_index = task_index % self.number_of_eval_tasks
+            task_number = self.task_list_eval[task_index]
+            self.eval_step += 1
+        return int(task_number)
+
     def reset(self, seed=None):
         """
         Reset the simulation to the initial state by calling the reset service.
@@ -1728,24 +1798,7 @@ class GazeboEnv(BaseClassEnv):
         if self.rl_action_output == 'diff_drive':
             self._publish_diff_drive_action(np.array([0.0, 0.0]))
 
-        if not self.eval_mode:
-            if self.first_reset:
-                # Task number is initial task number set in __init__
-                self.first_reset = False
-            else:
-                self.task_number = int(self.rng.integers(
-                    0, self.number_of_tasks, dtype=np.int32))
-
-        else:
-            self.task_number = int(
-                np.floor(self.eval_step / self.num_trials_scenario))
-            self.task_number = self.task_number % self.number_of_tasks
-            self.eval_step += 1
-            if self.task_number >= self.number_of_tasks:
-                self.node.get_logger().error(
-                    "All tasks evaluated but still in evaluation mode \
-                     please check the number of tasks manually shutting down")
-                self.node.shutdown()
+        self.task_number = self.update_task_number()
 
         self.node.get_logger().error(
             f"Task number: {self.task_number} Task list: {self.task_list} \

@@ -42,7 +42,10 @@
 
       ### REWARD FUNCTION PARAMETERS ###
       reward_functions: ['collision','path_traversal','social_force_sfm']
+      timed_out:
+        time_out_limit: 20 # Number of timesteps to reset the simulation if the robot does not move.
       goal_reached:
+        at_goal_time_threshold: 3 # REQUIRED even when not using as a reward to prevent resetting sim too soon
         goal_threshold: 0.7
         reward: 1.0
       collision:

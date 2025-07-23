@@ -75,7 +75,7 @@ def eval_data_callback(locals, globals, node: Node, rl_io_manager):
         node.get_logger().error(f"Mean velocity reward: {velocity_reward_mean:.2f}")
         """
 
-        # if done_reason == "Not done":
+        # if done_reason == "not_done":
         if not os.path.exists(f'{sim_path}'):
             os.makedirs(f'{sim_path}')
 

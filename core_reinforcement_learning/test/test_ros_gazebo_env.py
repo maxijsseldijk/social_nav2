@@ -90,6 +90,9 @@ class FakeLogger:
     def info(self, msg):
         print(msg)
 
+    def warn(self, msg):
+        print(msg)
+
     def assert_error_called_with(self, msg):
         assert msg in self.errors, f"Expected error message '{msg}' not found in {self.errors}"
 
@@ -128,9 +131,14 @@ class TestGazeboEnv(unittest.TestCase):
                 'n_prime': FakeParameter(3.0),
                 'epsilon': FakeParameter(0.005),
             },
+            'timed_out': {
+                'time_out_limit': FakeParameter(20),
+            },
             'goal_reached': {
                 'goal_threshold': FakeParameter(0.7),
                 'reward': FakeParameter(1.0),
+                'at_goal_time_threshold': FakeParameter(3),
+
             },
             'collision': {
                 'reward': FakeParameter(-3.0),
@@ -694,7 +702,40 @@ class TestGazeboEnv(unittest.TestCase):
             [[10.0, 10.0, 0.0, 0.0], [10.5, 10.5, 0.0, 0.0]])  # Agent position and velocity
         result = self.env._is_done(False)
         self.assertEqual(
-            result, (True, False, 'outside_interaction_range', False))
+            result, (False, True, 'outside_interaction_range', False))
+
+        # Test 3 No movement for 19 steps leading to timeout at time 20
+        self.env.time_not_moving = 19
+        self.env.rl_io_manager.last_robot_odom = np.array(
+            [[0.0, 0.0, 0.0, 0.0, 0.0]])  # Robot position and velocity
+        result = self.env._is_done(False)
+        self.assertEqual(
+            result, (False, True, 'timed_out', False))
+
+        # Test 4 No movement for 18 steps leading to no timeout at time 19
+        self.env.time_not_moving = 18
+        self.env.rl_io_manager.last_robot_odom = np.array(
+            [[0.0, 0.0, 0.0, 0.0, 0.0]])  # Robot position and velocity
+        self.env.rl_io_manager.last_agents_global_frame = np.array(
+            [[10.0, 10.0, 0.0, 0.0], [0.5, 0.5, 0.0, 0.0],
+             [1.5, 0.5, 3.0, 0.0],  [1.5, 1.5, -1.0, -1.0]])  # Agent position and velocity
+        result = self.env._is_done(False)
+        self.assertEqual(
+            result, (False, False, 'not_done', True))
+
+        # Test 5 test at goal working when time is 2
+        self.env.time_not_moving = 0
+        self.env.at_goal_time = 2
+        self.env.rl_io_manager.last_plan_length = 0.0
+        result = self.env._is_done(False)
+        self.assertEqual(
+            result, (True, False, 'at_goal', True))
+
+        # Test 5 test at goal working when time is 1
+        self.env.at_goal_time = 1
+        result = self.env._is_done(False)
+        self.assertEqual(
+            result, (False, False, 'not_done', True))
 
     def test_all_agents_outside_range(self):
         """Test the _all_agents_outside_range function."""
