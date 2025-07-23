@@ -352,6 +352,7 @@
       # entries to task_list one you add to tasks_list_eval.
       task_list: ['env_a_north'
                  ] 
+      task_list_eval: [0]
 
       # The taskgenerator also allows for custom parameters for each task.
       param_change_list:

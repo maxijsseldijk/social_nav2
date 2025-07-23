@@ -100,7 +100,7 @@ def evaluate_rl_model(rl_sim_node: RLsimulation, env: GazeboEnv,
         env.set_imitation_learning_running(True)
 
     mean_reward, std_reward = evaluate_policy(model, wrap_eval_env,
-                                              env.number_of_tasks * env.num_trials_scenario,
+                                              env.number_of_eval_tasks * env.num_trials_scenario,
                                               callback=lambda locals, globals: eval_data_callback(
                                                   locals, globals, rl_sim_node, rl_io_manager
                                               ),

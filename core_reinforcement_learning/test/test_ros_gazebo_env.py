@@ -201,7 +201,8 @@ class TestGazeboEnv(unittest.TestCase):
             'footprint_scale': FakeParameter(1.0),
             'TaskGenerator': {
                 'task_list': FakeParameter(
-                    ['corridor_passing_south']),
+                    ['task1', 'task2', 'task3', 'task4']),
+                'task_list_eval': FakeParameter([1, 2]),
                 'init_task_number': FakeParameter(0), },
 
         }
@@ -773,7 +774,50 @@ class TestGazeboEnv(unittest.TestCase):
         self.assertFalse(result)
         self.assertEqual(self.env.buffer_agents_in_range, 0)
 
-    # def test_is_done(self):
+    def test_update_task_number(self):
+        # Test1: if we get value error when task_number is in task_list_eval
+        self.env.eval_mode = False
+        self.env.first_reset = True
+        self.env.task_list = ['task1', 'task2',
+                              'task3', 'task4', 'task5', 'task6', 'task7']
+        self.env.task_list_eval = [1, 3]
+        self.env.number_of_tasks = 7
+        self.env.number_of_eval_tasks = 2
+        self.env.task_number = 1
+        self.env.train_tasks = np.delete(
+            np.arange(self.env.number_of_tasks), self.env.task_list_eval)
+
+        with self.assertRaises(ValueError):
+            self.env.update_task_number()
+
+        # Test2: if task_number is correct we should return it if it is the first_reset
+        self.env.first_reset = True
+        self.env.task_number = 2
+        task_number = self.env.update_task_number()
+
+        self.assertEqual(task_number, 2)
+
+        # Test3 check if first reset is set to false now
+        self.assertEqual(self.env.first_reset, False)
+
+        # Test4: now check if we get a random entry in task_list that is not in list_eval by
+        # running it a couple of times
+        for _ in range(20):
+            task_number = self.env.update_task_number()
+
+            self.assertIn(task_number, [0, 2, 4, 5, 6])
+
+        # Test5: now check if eval mode is enables if we return only values in that and that it is
+        # in correct order and number of tests per env
+        self.env.eval_mode = True
+        self.env.num_trials_scenario = 5
+        task_numbers = []
+        for _ in range(20):
+            task_number = self.env.update_task_number()
+
+            task_numbers.append(task_number)
+        self.assertEqual(
+            task_numbers, [1, 1, 1, 1, 1, 3, 3, 3, 3, 3, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3])
 
 
 if __name__ == '__main__':
