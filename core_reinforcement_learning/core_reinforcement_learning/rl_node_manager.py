@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import numpy as np
 import os
+import threading
 from transforms3d.euler import quat2euler
 from geometry_msgs.msg import Twist, PoseStamped, PolygonStamped, PointStamped
 from nav_msgs.msg import Odometry, Path, OccupancyGrid
@@ -30,6 +31,7 @@ class RlSubscriptionManager():
 
     def __init__(self, node: 'RLsimulation'):
         self.node = node
+        self._data_lock = threading.RLock()
         self.node.log_info("RlSubscriptionManager node initialized")
         self.name = "rl_node_manager"
         self.callback_frequency = self.node.get_parameter(
@@ -79,7 +81,8 @@ class RlSubscriptionManager():
             value: Value of the parameter.
 
         """
-        setattr(self, name, value)
+        with self._data_lock:
+            setattr(self, name, value)
 
     def create_subscribers(self, node_list):
         """
@@ -131,7 +134,9 @@ class RlSubscriptionManager():
         """
         state_dim = 0
         for state in self.state_callback_names:
-            state_dim += len(getattr(self, state).flatten())
+            state_data = getattr(self, state, None)
+            if state_data is not None:
+                state_dim += len(state_data.flatten())
         return state_dim
 
     def get_state_name_size_dict(self):
@@ -145,7 +150,11 @@ class RlSubscriptionManager():
         """
         state_dim = {}
         for state in self.state_callback_names:
-            state_dim[state] = len(getattr(self, state).flatten())
+            state_data = getattr(self, state, None)
+            if state_data is not None:
+                state_dim[state] = len(state_data.flatten())
+            else:
+                state_dim[state] = 0
         return state_dim
 
     def get_state(self):
@@ -157,15 +166,18 @@ class RlSubscriptionManager():
             np.array: The state vector.
 
         """
-        state_vector = np.empty((0,))
-        for state in self.state_callback_names:
-            state_array = getattr(self, state).reshape(1, -1)
-            if state_vector.size == 0:
-                state_vector = state_array
-            else:
-                state_vector = np.concatenate(
-                    (state_vector, state_array), axis=1, dtype=np.float32)
-        return state_vector.flatten()
+        with self._data_lock:
+            state_vector = np.empty((0,))
+            for state in self.state_callback_names:
+                state_data = getattr(self, state, None)
+                if state_data is not None:
+                    state_array = state_data.reshape(1, -1)
+                    if state_vector.size == 0:
+                        state_vector = state_array
+                    else:
+                        state_vector = np.concatenate(
+                            (state_vector, state_array), axis=1, dtype=np.float32)
+            return state_vector.flatten()
 
     def get_state_names(self):
         """
@@ -202,10 +214,11 @@ class RlSubscriptionManager():
             dict: Dictionary of utility data.
 
         """
-        utility_data = {}
-        for utility in self.utility_callback_names:
-            utility_data[utility] = getattr(self, utility)
-        return utility_data
+        with self._data_lock:
+            utility_data = {}
+            for utility in self.utility_callback_names:
+                utility_data[utility] = getattr(self, utility, None)
+            return utility_data
 
     def check_if_all_in_utility_list(self, utility_list: list[str]):
         """
@@ -250,13 +263,30 @@ class RlSubscriptionManager():
             The value of the state parameter if it exists, otherwise None.
 
         """
-        if hasattr(self, state):
-            self.node.log_info(f"The state variable '{state}' exists.")
-            return getattr(self, state)
-        else:
-            self.node.get_logger().warning(
-                f"The state variable '{state}' does not exist.")
-            return None
+        with self._data_lock:
+            if hasattr(self, state):
+                self.node.log_info(f"The state variable '{state}' exists.")
+                return getattr(self, state)
+            else:
+                self.node.get_logger().warning(
+                    f"The state variable '{state}' does not exist.")
+                return None
+
+    def get_data_safe(self, attribute_name: str):
+        """
+        Thread-safe getter for any attribute.
+
+        Args:
+        ----
+            attribute_name (str): Name of the attribute to get.
+
+        Returns
+        -------
+            The value of the attribute if it exists, otherwise None.
+
+        """
+        with self._data_lock:
+            return getattr(self, attribute_name, None)
 
     def wait_till_all_data_received(self):
         """
@@ -373,7 +403,8 @@ class RlSubscriptionManager():
             costmap (OccupancyGrid): Costmap data.
 
         """
-        self.last_costmap = costmap
+        with self._data_lock:
+            self.last_costmap = costmap
 
     def footprint_callback(self, footprint: PolygonStamped):
         """
@@ -384,7 +415,8 @@ class RlSubscriptionManager():
             footprint (PolygonStamped): Footprint data.
 
         """
-        self.last_footprint = footprint
+        with self._data_lock:
+            self.last_footprint = footprint
 
     def odometry_callback(self, od_data: Odometry):
         """
@@ -400,10 +432,12 @@ class RlSubscriptionManager():
                                      od_data.pose.pose.orientation.y,
                                      od_data.pose.pose.orientation.z])
         velocity_global = convert_twist_to_vector3(od_data)
-        self.last_robot_odom = np.array([od_data.pose.pose.position.x,
-                                         od_data.pose.pose.position.y,
-                                         yaw_data, velocity_global.vector.x,
-                                         velocity_global.vector.y]).reshape(1, -1)
+        robot_odom = np.array([od_data.pose.pose.position.x,
+                              od_data.pose.pose.position.y,
+                              yaw_data, velocity_global.vector.x,
+                              velocity_global.vector.y]).reshape(1, -1)
+        with self._data_lock:
+            self.last_robot_odom = robot_odom
 
     def nav2_input_callback(self, nav2_input: Twist):
         """
@@ -414,8 +448,10 @@ class RlSubscriptionManager():
             nav2_input (Twist): Navigation input data.
 
         """
-        self.last_nav2_input = np.array(
+        nav2_data = np.array(
             [nav2_input.linear.x, nav2_input.angular.z]).reshape(1, -1)
+        with self._data_lock:
+            self.last_nav2_input = nav2_data
 
     def plan_with_length_callback(self, plan_data: PathWithLength):
         """
@@ -426,14 +462,15 @@ class RlSubscriptionManager():
             plan_data (PathWithLength): Plan with length data.
 
         """
-        if not hasattr(self, "last_plan_header") and not hasattr(self, "last_plan_length"):
-            self.last_plan_header = None
-            self.last_plan_length = None
-        self.last_plan_header = plan_data.header
-        self.last_plan_length = plan_data.path_length
-        plan_2d = [[pose.pose.position.x, pose.pose.position.y]
-                   for pose in plan_data.poses]
-        self.last_plan = np.array(plan_2d).reshape(1, -1)
+        with self._data_lock:
+            if not hasattr(self, "last_plan_header") and not hasattr(self, "last_plan_length"):
+                self.last_plan_header = None
+                self.last_plan_length = None
+            self.last_plan_header = plan_data.header
+            self.last_plan_length = plan_data.path_length
+            plan_2d = [[pose.pose.position.x, pose.pose.position.y]
+                       for pose in plan_data.poses]
+            self.last_plan = np.array(plan_2d).reshape(1, -1)
 
     def global_plan_callback(self, plan_data: Path):
         """
@@ -446,7 +483,8 @@ class RlSubscriptionManager():
         """
         plan_2d = [[pose.pose.position.x, pose.pose.position.y]
                    for pose in plan_data.poses]
-        self.last_global_plan = np.array(plan_2d).reshape(1, -1)
+        with self._data_lock:
+            self.last_global_plan = np.array(plan_2d).reshape(1, -1)
 
     def lidar_point_array_callback(self, lidar_data: PointArray):
         """
@@ -458,7 +496,8 @@ class RlSubscriptionManager():
 
         """
         points_xy = [[point.x, point.y] for point in lidar_data.points]
-        self.last_lidar = np.array(points_xy).reshape(1, -1)
+        with self._data_lock:
+            self.last_lidar = np.array(points_xy).reshape(1, -1)
 
     def lidar_raw_callback(self, lidar_data: LaserScan):
         """
@@ -469,7 +508,8 @@ class RlSubscriptionManager():
             lidar_data (LaserScan): Lidar raw data.
 
         """
-        self.last_lidar_raw = np.array(lidar_data.ranges).reshape(1, -1)
+        with self._data_lock:
+            self.last_lidar_raw = np.array(lidar_data.ranges).reshape(1, -1)
 
     def agents_callback(self, od_data: People):
         """
@@ -484,10 +524,12 @@ class RlSubscriptionManager():
                          agent.position.y**2 for agent in od_data.people]
         closest_agent_index = np.argmin(closest_agent)
         closest_agent_position = od_data.people[closest_agent_index]
-        self.last_agents = np.array([closest_agent_position.position.x,
-                                     closest_agent_position.position.y,
-                                     closest_agent_position.velocity.x,
-                                     closest_agent_position.velocity.y]).reshape(1, -1)
+
+        with self._data_lock:
+            self.last_agents = np.array([closest_agent_position.position.x,
+                                        closest_agent_position.position.y,
+                                        closest_agent_position.velocity.x,
+                                        closest_agent_position.velocity.y]).reshape(1, -1)
 
     def agents_callback_global(self, od_data: People):
         """
@@ -500,7 +542,8 @@ class RlSubscriptionManager():
         """
         odom_placeholder = [[person.position.x, person.position.y,
                              person.velocity.x, person.velocity.y] for person in od_data.people]
-        self.last_agents_global_frame = np.array(odom_placeholder)
+        with self._data_lock:
+            self.last_agents_global_frame = np.array(odom_placeholder)
 
     def sfm_control_point_callback(self, control_point_data: Path):
         """
@@ -511,18 +554,19 @@ class RlSubscriptionManager():
             control_point_data (Path): Sfm control point data.
 
         """
-        last_timestamp = 0.0
-        # Check if control point data is older then timestep
-        if not hasattr(self, "last_sfm_control_point"):
-            last_timestamp = control_point_data.header.stamp
-            control_point_xy = [[pose.pose.position.x, pose.pose.position.y]
-                                for pose in control_point_data.poses]
-            self.last_sfm_control_point = np.array(
-                control_point_xy).reshape(1, -1)
-        elif self.node.get_clock().now().to_msg().sec - last_timestamp >= 1:
-            control_point_xy = [[pose.pose.position.x, pose.pose.position.y]
-                                for pose in control_point_data.poses]
-            self.last_sfm_control_point = np.array(
-                control_point_xy).reshape(1, -1)
-        else:
-            pass
+        with self._data_lock:
+            last_timestamp = 0.0
+            # Check if control point data is older then timestep
+            if not hasattr(self, "last_sfm_control_point"):
+                last_timestamp = control_point_data.header.stamp
+                control_point_xy = [[pose.pose.position.x, pose.pose.position.y]
+                                    for pose in control_point_data.poses]
+                self.last_sfm_control_point = np.array(
+                    control_point_xy).reshape(1, -1)
+            elif self.node.get_clock().now().to_msg().sec - last_timestamp >= 1:
+                control_point_xy = [[pose.pose.position.x, pose.pose.position.y]
+                                    for pose in control_point_data.poses]
+                self.last_sfm_control_point = np.array(
+                    control_point_xy).reshape(1, -1)
+            else:
+                pass

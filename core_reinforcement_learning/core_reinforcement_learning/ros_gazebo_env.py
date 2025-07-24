@@ -224,6 +224,7 @@ class BaseClassEnv(gym.Env, ABC):
         self.first_reset = True
         self.at_goal_time = 0
         self.time_not_moving = 0
+        self.last_goal_reached_time = -float('inf')
 
     def __add_requirements(self, requirements: np.ndarray):
         """
@@ -457,17 +458,21 @@ class BaseClassEnv(gym.Env, ABC):
         goal_params = self.node.get_parameters_by_prefix('goal_reached')
         goal_threshold = goal_params['goal_threshold'].value
         at_goal_time_threshold = goal_params['at_goal_time_threshold'].value
-        if self.rl_io_manager.last_plan_length < goal_threshold:
-            self.at_goal_time += 1
+        now = self.node.get_clock().now().nanoseconds / 1e9  # seconds
 
-        if self.at_goal_time >= at_goal_time_threshold:
-            self.at_goal_time = 0
-            return True
+        last_plan_length = self._get_safe_data('last_plan_length')
+        if last_plan_length < goal_threshold:
+            if now - self.last_goal_reached_time >= at_goal_time_threshold:
+                self.last_goal_reached_time = now
+                return True
+            else:
+                return False
         else:
             return False
 
     def _is_timed_out(self) -> bool:
-        robot_velocity = self.rl_io_manager.last_robot_odom.flatten()[3:4]
+        last_robot_odom = self._get_safe_data('last_robot_odom')
+        robot_velocity = last_robot_odom.flatten()[3:4]
         tout_params = self.node.get_parameters_by_prefix('timed_out')
         time_out_lim = tout_params['time_out_limit'].value
 
@@ -479,6 +484,25 @@ class BaseClassEnv(gym.Env, ABC):
             self.time_not_moving = 0
             return True
         return False
+
+    def _get_safe_data(self, *attribute_names):
+        """
+        Thread-safe helper method to get multiple attributes from rl_io_manager.
+
+        Args:
+        ----
+            *attribute_names: Variable number of attribute names to retrieve.
+
+        Returns
+        -------
+            tuple or single value: If multiple attributes requested, returns tuple.
+                                   If single attribute, returns the value directly.
+
+        """
+        if len(attribute_names) == 1:
+            return self.rl_io_manager.get_data_safe(attribute_names[0])
+        else:
+            return tuple(self.rl_io_manager.get_data_safe(name) for name in attribute_names)
 
     @abstractmethod
     def _reward_function(self, action: np.ndarray, info: dict) -> float:
@@ -519,10 +543,11 @@ class BaseClassEnv(gym.Env, ABC):
         path_traversal_for_reward = path_traversal_reward_param[
             'path_traversal_for_positive_reward'].value
         if self.last_distance_to_goal is None:
-            self.last_distance_to_goal = self.rl_io_manager.last_plan_length
+            last_plan_length = self._get_safe_data('last_plan_length')
+            self.last_distance_to_goal = last_plan_length
             return 0.0
         else:
-            current_path_distance = self.rl_io_manager.last_plan_length
+            current_path_distance = self._get_safe_data('last_plan_length')
 
         if (self.last_distance_to_goal == current_path_distance and
                 self.last_distance_reward is not None):
@@ -608,13 +633,16 @@ class BaseClassEnv(gym.Env, ABC):
             velocity_array = []
             # If an agent is outside the interaction range it will have a contant values as given
             # by the global variables in publish_agents_velocity.py
+            last_agents = self._get_safe_data('last_agents')
             agents_in_range = [agent == np.array([OUTSIDE_RANGE_LOC, OUTSIDE_RANGE_LOC,
                                                   OUTSIDE_RANGE_VELOCITY, OUTSIDE_RANGE_VELOCITY]
-                                                 ) for agent in self.rl_io_manager.last_agents]
+                                                 ) for agent in last_agents]
             self.node.get_logger().error(
-                f'Agents {self.rl_io_manager.last_agents} in range {agents_in_range} ')
+                f'Agents {last_agents} in range {agents_in_range} ')
             # The agents are orderned in the same way for the global frame so simple mask suffices.
-            for agent in self.rl_io_manager.last_agents_global_frame:
+            last_agents_global_frame = self._get_safe_data(
+                'last_agents_global_frame')
+            for agent in last_agents_global_frame:
                 squared_velocity = (agent[2] ** 2 + agent[3] ** 2)
                 velocity_array.append(squared_velocity)
 
@@ -654,9 +682,11 @@ class BaseClassEnv(gym.Env, ABC):
         min_reward = proxemics_reward_param['min_reward'].value
         distance_threshold = proxemics_reward_param['distance_threshold'].value
         closest_distance = 100.0
-        for agent in self.rl_io_manager.last_agents_global_frame:
+        last_agents_global_frame, last_robot_odom = self._get_safe_data(
+            'last_agents_global_frame', 'last_robot_odom')
+        for agent in last_agents_global_frame:
             distance = np.min(np.linalg.norm(
-                agent[0:2] - self.rl_io_manager.last_robot_odom[0][0:2]))
+                agent[0:2] - last_robot_odom[0][0:2]))
             if distance < closest_distance:
                 closest_distance = distance
 
@@ -696,10 +726,12 @@ class BaseClassEnv(gym.Env, ABC):
         min_social_force = social_force_reward_param['min_social_force'].value
 
         total_social_force = 1.0
-        robot = self.rl_io_manager.last_robot_odom[0]
+        last_robot_odom, last_agents_global_frame = self._get_safe_data(
+            'last_robot_odom', 'last_agents_global_frame')
+        robot = last_robot_odom[0]
         force_deceleration_list = []
         force_evasion_list = []
-        for agent in self.rl_io_manager.last_agents_global_frame:
+        for agent in last_agents_global_frame:
             force_decel, force_evasion, sum_force = self._calculate_social_force_sfm_impl(
                 n, A, gamma_, n_prime, lambda_, epsilon, agent, robot)
             social_force_clip = np.clip(
@@ -948,21 +980,23 @@ class GazeboEnv(BaseClassEnv):
     def create_utility_functions_from_requirements(self):
         """Create utility related functionality based on the requirements that are present."""
         if hasattr(self, "last_plan_length"):
-            self.set_starting_plan_length(self.rl_io_manager.last_plan_length)
+            last_plan_length = self._get_safe_data('last_plan_length')
+            self.set_starting_plan_length(last_plan_length)
 
         if self.rl_io_manager.check_if_in_all_nodes_list(['last_footprint',
                                                           'last_costmap',
                                                           'last_robot_odom']):
+            last_costmap, last_footprint, last_robot_odom = self._get_safe_data(
+                'last_costmap', 'last_footprint', 'last_robot_odom')
             self.footprint_collision_checker.setCostmap(
-                PyCostmap2D(self.rl_io_manager.last_costmap))
+                PyCostmap2D(last_costmap))
             # For each point in the robot polygon remove the odom x and y
             local_footprint = PolygonStamped()
-            for point in self.rl_io_manager.last_footprint.polygon.points:
-                last_odom = self.rl_io_manager.last_robot_odom
+            for point in last_footprint.polygon.points:
                 point.x = (
-                    point.x - last_odom[0][0].item()) * self.footprint_scale
+                    point.x - last_robot_odom[0][0].item()) * self.footprint_scale
                 point.y = (
-                    point.y - last_odom[0][1].item()) * self.footprint_scale
+                    point.y - last_robot_odom[0][1].item()) * self.footprint_scale
 
                 local_footprint.polygon.points.append(point)
 
@@ -979,7 +1013,8 @@ class GazeboEnv(BaseClassEnv):
         """
         if self.rl_action_output == 'plan':
             if self.rl_io_manager.check_if_in_all_nodes_list(['last_plan']):
-                action_dim = np.size(self.rl_io_manager.last_plan)
+                last_plan = self._get_safe_data('last_plan')
+                action_dim = np.size(last_plan)
             else:
                 self.node.get_logger().error(
                     "Plan output requested but no NAV2 plan received. \
@@ -1090,7 +1125,7 @@ class GazeboEnv(BaseClassEnv):
                 'path_travel_positive_interaction'].value
             max_reward = outside_interaction_range_param['max_reward'].value
             min_reward = outside_interaction_range_param['min_reward'].value
-            current_plan_length = self.rl_io_manager.last_plan_length
+            current_plan_length = self._get_safe_data('last_plan_length')
 
             if self.starting_plan_length - current_plan_length >= path_traversal_for_reward:
                 terminal_reward = max_reward
@@ -1131,11 +1166,11 @@ class GazeboEnv(BaseClassEnv):
             bool: True if there is a collision, False otherwise.
 
         """
-        lidar_points = self.rl_io_manager.last_lidar
+        last_lidar = self._get_safe_data('last_lidar')
         threshold = np.sqrt(self.robot_radius_sqr) * \
             self.collision_footprint_factor
 
-        lidar_points = lidar_points.reshape(-1, 2)
+        lidar_points = last_lidar.reshape(-1, 2)
         lidar_points_pow = np.power(lidar_points, 2)
         lidar_points_dist = np.sqrt(np.sum(lidar_points_pow, axis=1))
 
@@ -1245,8 +1280,8 @@ class GazeboEnv(BaseClassEnv):
             If agents_global_frame is None, the function will also return all agents ids.
 
         """
-        agents_global_frame = self.rl_io_manager.last_agents_global_frame
-        robot_odom = self.rl_io_manager.last_robot_odom
+        agents_global_frame, robot_odom = self._get_safe_data(
+            'last_agents_global_frame', 'last_robot_odom')
         if (self.trial_time_step < self.timesteps_before_interaction
                 or agents_global_frame is None):
 
@@ -1298,10 +1333,10 @@ class GazeboEnv(BaseClassEnv):
             bool: True if there are no agents in the interaction range, False otherwise.
 
         """
-        agents = self.rl_io_manager.last_agents
+        last_agents = self._get_safe_data('last_agents')
         if np.all([agent == np.array([OUTSIDE_RANGE_LOC, OUTSIDE_RANGE_LOC,
                                       OUTSIDE_RANGE_VELOCITY, OUTSIDE_RANGE_VELOCITY]
-                                     ) for agent in agents]):
+                                     ) for agent in last_agents]):
             self.buffer_agents_in_range = 0
             return True
 
@@ -1392,7 +1427,8 @@ class GazeboEnv(BaseClassEnv):
                 "Only continuous actions are currently supported for 2D diff drive")
 
         if not self.in_interaction_range:
-            action = self.rl_io_manager.last_nav2_input.flatten()
+            last_nav2_input = self._get_safe_data('last_nav2_input')
+            action = last_nav2_input.flatten()
 
         twist = Twist()
         twist.linear.x = action[0].item()
@@ -1407,8 +1443,9 @@ class GazeboEnv(BaseClassEnv):
             point_cmd.point.x = last_point[0].item()
             point_cmd.point.y = last_point[1].item()
             point_cmd.point.z = 0.0
-            point_cmd.header.frame_id = self.rl_io_manager.last_plan_header.frame_id
-            point_cmd.header.stamp = self.rl_io_manager.last_plan_header.stamp
+            last_plan_header = self._get_safe_data('last_plan_header')
+            point_cmd.header.frame_id = last_plan_header.frame_id
+            point_cmd.header.stamp = last_plan_header.stamp
 
             self.max_safe_point_publisher.publish(point_cmd)
 
@@ -1430,15 +1467,18 @@ class GazeboEnv(BaseClassEnv):
 
         if not self.in_interaction_range:
             action = np.array([0.0, 0.0])
-        last_robot_odom_list = self.rl_io_manager.last_robot_odom.flatten().tolist()
-        last_plan_list = self.rl_io_manager.last_plan.flatten().tolist()
+        last_robot_odom, last_plan = self._get_safe_data(
+            'last_robot_odom', 'last_plan')
+        last_robot_odom_list = last_robot_odom.flatten().tolist()
+        last_plan_list = last_plan.flatten().tolist()
         if self.rl_io_manager.check_if_in_all_nodes_list(['last_global_plan']):
-            last_global_plan_list = self.rl_io_manager.last_global_plan.flatten().tolist()
+            last_global_plan = self._get_safe_data('last_global_plan')
+            last_global_plan_list = last_global_plan.flatten().tolist()
         # For now hardcode multiple plan points equals finding furthest point
         # in the plan
             if len(last_global_plan_list) > 2:
                 last_global_plan_list = self._get_maximum_safe_plan_point(
-                    self.rl_io_manager.last_global_plan.reshape(-1, 2))
+                    last_global_plan.reshape(-1, 2))
                 if last_global_plan_list is not None:
                     last_plan_list = last_global_plan_list.flatten().tolist()
 
@@ -1448,8 +1488,9 @@ class GazeboEnv(BaseClassEnv):
 
         # Publish the robot action
         plan_cmd = Path()
-        plan_cmd.header.frame_id = self.rl_io_manager.last_plan_header.frame_id
-        plan_cmd.header.stamp = self.rl_io_manager.last_plan_header.stamp
+        last_plan_header = self._get_safe_data('last_plan_header')
+        plan_cmd.header.frame_id = last_plan_header.frame_id
+        plan_cmd.header.stamp = last_plan_header.stamp
 
         total_actions = [0, 0]
 
@@ -1478,7 +1519,7 @@ class GazeboEnv(BaseClassEnv):
 
             if collision_to_goal:
                 future_collision = True
-            if self.rl_io_manager.last_plan_header.frame_id == os.path.normpath(
+            if last_plan_header.frame_id == os.path.normpath(
                     os.path.join(self.ns_robot, self.robot_frame)).strip("/"):
                 plan_is_local_frame = True
             else:
@@ -1496,8 +1537,8 @@ class GazeboEnv(BaseClassEnv):
                     [updated_x_position, updated_y_position])
 
             pose = PoseStamped()
-            pose.header.frame_id = self.rl_io_manager.last_plan_header.frame_id
-            pose.header.stamp = self.rl_io_manager.last_plan_header.stamp
+            pose.header.frame_id = last_plan_header.frame_id
+            pose.header.stamp = last_plan_header.stamp
             pose.pose.position.x = updated_pose[0]
             pose.pose.position.y = updated_pose[1]
             plan_cmd.poses.append(pose)
@@ -1543,7 +1584,8 @@ class GazeboEnv(BaseClassEnv):
 
         # Create a PolygonStamped message
         polygon_msg = PolygonStamped()
-        polygon_msg.header.frame_id = self.rl_io_manager.last_plan_header.frame_id
+        last_plan_header = self._get_safe_data('last_plan_header')
+        polygon_msg.header.frame_id = last_plan_header.frame_id
         polygon_msg.header.stamp = self.node.get_clock().now().to_msg()
 
         for vertex in hull_vertices:
@@ -1593,7 +1635,8 @@ class GazeboEnv(BaseClassEnv):
         return waypoint
 
     def get_critical_points_from_lidar(self):
-        raw_crit_points = self.rl_io_manager.last_lidar.reshape(-1, 2)
+        last_lidar = self._get_safe_data('last_lidar')
+        raw_crit_points = last_lidar.reshape(-1, 2)
         mask = ~np.all(raw_crit_points == self.max_lidar_distance, axis=1)
         critical_points = raw_crit_points[mask]
         # Move the points closer to the robot to make a smaller corridor for safety
@@ -1661,10 +1704,12 @@ class GazeboEnv(BaseClassEnv):
 
         else:
             info['done_reason'] = [done_reason]
+            last_robot_odom, last_agents_global_frame = self._get_safe_data(
+                'last_robot_odom', 'last_agents_global_frame')
             info['robot_pose'] = [
-                self.rl_io_manager.last_robot_odom.flatten().tolist()]
+                last_robot_odom.flatten().tolist()]
             info['agent_pose'] = [
-                self.rl_io_manager.last_agents_global_frame.tolist()]
+                last_agents_global_frame.tolist()]
             info['in_interaction_range'] = [in_interaction_range]
             info['sim_time'] = [round(self.sim_time, 2)]
             reward = self._reward_function(action, info)
@@ -1727,10 +1772,12 @@ class GazeboEnv(BaseClassEnv):
             else:
                 info['done_reason'].append(done_reason)
             info['in_interaction_range'].append(in_interaction_range)
+            last_robot_odom, last_agents_global_frame = self._get_safe_data(
+                'last_robot_odom', 'last_agents_global_frame')
             info['robot_pose'].append(
-                self.rl_io_manager.last_robot_odom.flatten().tolist())
+                last_robot_odom.flatten().tolist())
             info['agent_pose'].append(
-                self.rl_io_manager.last_agents_global_frame.tolist())
+                last_agents_global_frame.tolist())
             terminated_list.append(terminated)
             truncated_list.append(truncated)
 
