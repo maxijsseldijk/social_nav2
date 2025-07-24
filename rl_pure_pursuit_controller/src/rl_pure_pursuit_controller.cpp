@@ -75,7 +75,7 @@ void RlPurePursuitController::configure(
     node, plugin_name_ + ".num_samples", rclcpp::ParameterValue(10));
 
   declare_parameter_if_not_declared(
-    node, plugin_name_ + ".max_angular_velocity", rclcpp::ParameterValue(0.5));
+    node, plugin_name_ + ".max_rot_vel", rclcpp::ParameterValue(1.5));
 
   declare_parameter_if_not_declared(
     node, plugin_name_ + ".min_safety_distance", rclcpp::ParameterValue(0.3));
@@ -89,7 +89,7 @@ void RlPurePursuitController::configure(
   node->get_parameter(plugin_name_ + ".transform_tolerance", transform_tolerance);
   node->get_parameter(plugin_name_ + ".lookahead_dist", lookahead_dist_);
   node->get_parameter(plugin_name_ + ".num_samples", num_samples_);
-  node->get_parameter(plugin_name_ + ".max_angular_velocity", max_angular_vel_);
+  node->get_parameter(plugin_name_ + ".max_rot_vel", max_angular_vel_);
   node->get_parameter(plugin_name_ + ".min_safety_distance", min_safety_distance_);
   node->get_parameter(plugin_name_ + ".max_safety_distance", max_safety_distance_);
   node->get_parameter(plugin_name_ + ".collision_x_threshold", collision_x_threshold_);
@@ -223,7 +223,7 @@ geometry_msgs::msg::TwistStamped RlPurePursuitController::computeVelocityCommand
 
     double curvature = 0.0;
     if (rl_carrot_dist2 > 0.001) {
-      curvature = 2.0 * rl_carrot_pose.pose.position.y / rl_carrot_dist2;
+      curvature = 3.0 * rl_carrot_pose.pose.position.y / rl_carrot_dist2;
     }
 
     // Calculate linear velocity based on the distance to nearest collision point

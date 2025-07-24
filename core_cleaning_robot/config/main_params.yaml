@@ -35,7 +35,7 @@
       time_step_length: 0.3                     #The length of a timestep in seconds  
       reward_averaging: False                    #Determines if the reward should be averaged over the number of timesteps. Note can cause small error in pause time.
       reward_samples_per_timestep: 5            #The number of samples to use for the reward per timestep if reward averaging is used
-      collision_footprint_factor: 1.8           #Parameter used to multiply the robot footprint to reset the simulation before a real collision occurs.
+      collision_footprint_factor: 1.5           #Parameter used to multiply the robot footprint to reset the simulation before a real collision occurs.
       footprint_scale: 0.8                      #The scale of the footprint of the robot compared to the one used by NAV2. This is used for determining if there is a future collision.
       grid_size: 0.1                            #The size of the grid to use for discrete plan actions
       max_trial_timesteps: 150
@@ -44,12 +44,13 @@
       ### REWARD FUNCTION PARAMETERS ###
       reward_functions: ['collision','path_traversal','social_force_sfm']
       timed_out:
-        time_out_limit: 20 # Number of timesteps to reset the simulation if the robot does not move.
+        time_out_limit: 10 # Number of timesteps to reset the simulation if the robot does not move.
       goal_reached:
         goal_threshold: 0.7
         reward: 1.0
         at_goal_time_threshold: 5.0 # REQUIRED time in s before consequative goal reached can be given. Necassary as NAV2 sometimes hangs 
       collision: 
+        reward: -8.0
       proxemics:
         min_reward: -3.0
         max_reward: 0.0
@@ -80,19 +81,19 @@
         A: 4.5                                  #Multiplier for the output social force
         n_prime: 3.0                            #Parameter influencing the influence of interaction direction on the deceleration along interaction direction t_ij
         epsilon: 0.005                          #Parameter used to preffer overtaking on the right side
-
+ 
       ### EVALUATION PARAMETERS ###
-      sim_name: 'Expert_SFM_8_T_0_3_EPS_TERM_NO_ROBOT_STATE_CIRCLE_NO_PRETRAIN'             #The name of the simulation for plotting purposes
+      sim_name: 'Expert_SFM_8_T_0_3_PLAYGROUND_0_9_lookahead_SDE_extra_envs'             #The name of the simulation for plotting purposes
       num_eval_per_scenario: 2                #The number of evaluations to perform per scenario
       load_results_only_mode: False            #Determines if the super evaluation mode should be used. This will simply generate plots from data in the result file
 
       ### INTERACTION PARAMETERS ###
       interaction_range: 6.0                   #The interaction range from which the robot will check if there are agents in the vicinity that move towards it.
-      critical_interaction_range: 3.5          #The critical interaction range from which the robot will always apply the RL algorithm independent of the orientations and poses.
-      timesteps_before_switch_to_nav2: 5       #Number of timesteps before the agent switches to the nav2 planner if not in the interaction range
-      timesteps_before_interaction: 10          #Number of timesteps before the agent will check if its in the interaction range during training. 
+      critical_interaction_range: 3.0          #The critical interaction range from which the robot will always apply the RL algorithm independent of the orientations and poses.
+      timesteps_before_switch_to_nav2: 2       #Number of timesteps before the agent switches to the nav2 planner if not in the interaction range
+      timesteps_before_interaction: 0          #Number of timesteps before the agent will check if its in the interaction range during training. 
       timesteps_before_agents_in_range: 0      #Number of timesteps once in the interaction range that the future collision will find a future collision. Used when using use_constant_when_out_of_range is True  
-      reset_on_exit_interaction_range: True   #If set to true the simulation is reset when the robot leaves the interaction range. Else the NAV2 planner is used to navigate towards the goal.
+      reset_on_exit_interaction_range: False   #If set to true the simulation is reset when the robot leaves the interaction range. Else the NAV2 planner is used to navigate towards the goal.
 
       ### EXPERT DEMONSTRATION PARAMETERS ###
       use_expert_demonstrations: False          #Determines if the expert demonstrations should be used for training the RL algorithm. If train is false the expert policy is used for evaluation.
@@ -109,26 +110,26 @@
         
       ### RL ALGORITHM PARAMETERS ###       
       SAC:
-        save_model_path: "Expert_SFM_8_T_0_3_EPS_TERM_NO_ROBOT_STATE_CIRCLE_COLLISION_GLOBAL"
-        load_model_path: "Expert_SFM_8_T_0_3_EPS_TERM_NO_ROBOT_STATE_CIRCLE_COLLISION_GLOBAL/model_150000"                
+        save_model_path: "Expert_SFM_8_T_0_3_PLAYGROUND_0_9_lookahead_SDE_extra_envs"
+        load_model_path: "Expert_SFM_8_T_0_3_PLAYGROUND_0_9_lookahead_SDE_extra_envs/model_100000"                
         load_model: True                                          
 
-        load_replay_buffer_path: "Expert_SFM_8_T_0_3_EPS_TERM_NO_ROBOT_STATE_CIRCLE_COLLISION_GLOBAL/replay_buffer_100000"
+        load_replay_buffer_path: "Expert_SFM_8_T_0_3_PLAYGROUND_0_9_lookahead_SDE_extra_envs/replay_buffer_100000"
         load_replay_buffer: True
 
         # SAC SB3 related parameters
         replay_buffer_size: 250000 
-        learning_starts: 1000               
+        learning_starts: 2000               
         net_arch: [128, 128]
         target_update_interval: 1
         train_freq: 2                  
-        use_sde: False
+        use_sde: True
         sde_sample_freq: 4
         use_sde_at_warmup: False
         verbose: 1
         batch_size:  16
-        ent_coef: 'auto_0.5'            
-        target_entropy: -8.0
+        ent_coef: 'auto_1.0'            
+        target_entropy: 0.0
         gamma: 0.99                    
         tau: 0.005                     
         policy_lr: 0.0003
@@ -136,7 +137,7 @@
         q_lr: 0.001
         reward_scale: 1.0
         save_model_interval: 10000
-        eval_freq: 2000
+        eval_freq: 5000
 
       rl_node_manager:
         # The rl node manager is used to describes state and utility nodes that are used 
@@ -183,7 +184,7 @@
         # to generate some social behaviour as a starting point.
         callback_frequency: 10 #Hz
         state_nodes: ['lidar', 'agents', 'plan']
-        utility_nodes: ['costmap','footprint','global_plan', 'robot_odom', 'agents_global_frame']
+        utility_nodes: ['costmap','footprint', 'robot_odom', 'agents_global_frame']
         costmap:
           topic: 'cleaning_robot/global_costmap/costmap'
           type: 'OccupancyGrid'
@@ -269,7 +270,7 @@
     use_constant_for_distant_measurements: True
     max_lidar_distance: 6.0
     force_waypoint_in_corridor: True          # Can only be used when plan is in the local frame
-    corridor_safety_margin: 0.30
+    corridor_safety_margin: 0.4
 
     # Dynamic Agents Parameters
     laser_enable_agents: False
@@ -289,7 +290,7 @@
     # are used to output the same number of rl output samples.
     # Only applicable for DWBLocalPlanner and SFWPlannerNode as RlPurePursuitController always uses
     # a single sample on the path.
-    rl_path_length: 1.0
+    rl_path_length: 0.9
     rl_path_samples: 1
 
     # The low-level controller to use for the RL algorithm.
@@ -312,9 +313,9 @@
 
 
   # Gazebo related parameters
-    width: 0.2
-    length: 0.2
-    height: 0.13
+    width: 0.306
+    length: 0.281
+    height: 0.141
     
     # Technically there can be multiple robots in the simulation. However currently only one
     # robot is used in the utilities. For multi-robot cases the framework needs to be be 
@@ -325,8 +326,11 @@
     
      # The names of other entities in the environment. The names can be anything however remember
      # to create an xml file with navigate_through_poses_<agent_name>.xml for each agent.
-    agent_names: 
+    agent_names: # ""
      - "agent1"
+     - "agent2"
+     #- "agent3"
+     #- "agent4"
 
      
     ######### TASK GENERATOR PARAMETERS #########
@@ -350,9 +354,13 @@
       # Select what environments to be used for evaluation only using tasks_list_eval
       # If you would like to both train and evaluate an environment add two
       # entries to task_list one you add to tasks_list_eval.
-      task_list: ['env_a_north'
-                 ] 
-      task_list_eval: [0]
+      task_list: [ 
+        'env_a_north', 'env_a_south',
+        'env_b_north', 'env_b_north_crossing', 'env_b_south', 'env_b_south_room_cross', 'env_b_north_room_cross',
+        'env_f', 'env_f_passing',
+        'env_h_1', 'env_h_2', 'env_h_2_2', 'env_h_3', 'env_h_3'
+      ]
+      task_list_eval: [10, 11, 12, 13]  # Indices of env_h_1, env_h_2, env_h_2_2, env_h_3, env_h_3_2
 
       # The taskgenerator also allows for custom parameters for each task.
       param_change_list:
@@ -478,7 +486,7 @@
       env_f:
         cleaning_robot:
           position:
-            x_pose: [-4.0, -3.0]
+            x_pose: [-4.0, -3.2]
             y_pose: [6.3, 7.8]
             z_pose: [0.04, 0.04]
           orientation:
@@ -527,7 +535,7 @@
       env_f_passing:
         cleaning_robot:
           position:
-            x_pose: [-4.0, -3.0]
+            x_pose: [-4.0, -3.2]
             y_pose: [6.3, 7.8]
             z_pose: [0.04, 0.04]
           orientation:
@@ -1066,7 +1074,7 @@
             - "g1"
           g0:
             x_pose: [17.5,17.5]
-            y_pose: [-13.5, -13.5]
+            y_pose: [-13.3, -13.3]
           g1:
             x_pose: [17.5,17.5]
             y_pose: [-20.0, -19.0]

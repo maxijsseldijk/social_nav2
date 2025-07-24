@@ -154,8 +154,8 @@ def launch_func(context):
 
             Node(
                 package='core_nav2_navigation',
-                executable='follow_single_waypoint.py',
-                name='follow_single_waypoint',
+                executable='follow_waypoints.py',
+                name='follow_waypoints',
                 emulate_tty=True,
                 output='screen',
                 parameters=[main_parameters_file],

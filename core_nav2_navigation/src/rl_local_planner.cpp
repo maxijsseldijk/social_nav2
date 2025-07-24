@@ -146,7 +146,6 @@ void RLLocalPlanner::configure(
       inside_interaction_range_msg_ = std::make_shared<std_msgs::msg::Bool>();
       if (msg->data.empty()) {
         inside_interaction_range_msg_->data = false;
-        RCLCPP_ERROR(logger_, "No agents in interaction range, set to false.");
       } else {
         inside_interaction_range_msg_->data = true;
       }

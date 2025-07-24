@@ -74,10 +74,7 @@ class MultiTaskNavigator(Node):
 
         self.get_logger().info('Follow Waypoints Node Started')
         self.params = self.get_parameters_by_prefix('TaskGenerator')
-        # As each
         self.rng = np.random.default_rng(self.seed)
-        self.get_logger().error(
-            f'seed test {self.seed}{self.rng.integers(0,100)}')
         qos_profile_task = QoSProfile(depth=1)
         qos_profile_task.durability = QoSDurabilityPolicy.VOLATILE
 

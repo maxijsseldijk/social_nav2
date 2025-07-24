@@ -60,6 +60,8 @@ bt_navigator:
     # nav2_bt_navigator/navigate_through_poses_w_replanning_and_recovery.xml
     # They can be set here or via a RewrittenYaml remap from a parent launch file to Nav2.
     default_nav_to_pose_bt_xml: "$(find-pkg-share core_cleaning_robot)/config/<trim_controller_name>.xml"
+    default_nav_through_poses_bt_xml: "$(find-pkg-share core_cleaning_robot)/config/navigate_through_poses_<robot_namespace>.xml"
+
     plugin_lib_names:
       - nav2_compute_path_to_pose_action_bt_node
       - nav2_compute_path_through_poses_action_bt_node
@@ -156,10 +158,10 @@ controller_server:
 
       lookahead_dist: <rl_path_length>            
       # Rl controller parameters
-      desired_linear_vel: 0.3
-      min_safety_distance: 0.3 # Minimum distance to the closest obstacle to allow forward motion
-      max_safety_distance: 1.0 # Maximum distance to slow down the robot as (velocity) * (distance - min_safety_distance) / (max_safety_distance - min_safety_distance)
-      collision_x_threshold: 0.1 # Threshold for only considering point ahead of the robot for slowing down by using a tolerance we filter out points to the sides.
+      desired_linear_vel: 0.26
+      min_safety_distance: 0.45 # Minimum distance to the closest obstacle to allow forward motion
+      max_safety_distance: 0.55 # Maximum distance to slow down the robot as (velocity) * (distance - min_safety_distance) / (max_safety_distance - min_safety_distance)
+      collision_x_threshold: 0.00 # Threshold for only considering point ahead of the robot for slowing down by using a tolerance we filter out points to the sides.
       num_samples: 10  # Number of samples of the global path to find the point furthest ahead inside the safe corridor
 
       controller_frame:  <robot_namespace>/odom
@@ -167,9 +169,9 @@ controller_server:
 
       drivetype: "differential" # "differential" or "omnidirectional"
 
-      max_trans_vel:        0.3 
+      max_trans_vel:        0.26 
       min_trans_vel:        0.0
-      max_rot_vel:          0.5 
+      max_rot_vel:          1.82 
       min_rot_vel:          0.0 
       max_trans_acc:        2.5
       max_rot_acc:          3.2
@@ -199,7 +201,7 @@ controller_server:
       relaxationTime: 0.5
 
       # cost function weights
-      social_weight:        0.4
+      social_weight:        0.1
       costmap_weight:       2.0
       velocity_weight:      0.8 
       angle_weight:         0.6 
@@ -213,7 +215,45 @@ controller_server:
         odom_topic:         /<robot_namespace>/odometry
         max_obstacle_dist:  3.5
         naive_goal_time:    2.0
-        people_velocity:    0.6
+        people_velocity:    1.0
+
+      min_vel_x: 0.0
+      min_vel_y: 0.0
+      max_vel_x: 0.26
+      max_vel_y: 0.0
+      max_vel_theta: 1.0
+      min_speed_xy: 0.0
+      max_speed_xy: 0.26
+      min_speed_theta: 0.0
+      acc_lim_x: 2.5
+      acc_lim_y: 0.0
+      acc_lim_theta: 3.2
+      decel_lim_x: -2.5
+      decel_lim_y: 0.0
+      decel_lim_theta: -3.2
+      vx_samples: 20
+      vy_samples: 5
+      vtheta_samples: 20
+      sim_time: 1.7
+      linear_granularity: 0.05
+      angular_granularity: 0.025
+      transform_tolerance: 0.2
+      xy_goal_tolerance: 0.25
+      trans_stopped_velocity: 0.25
+      short_circuit_trajectory_evaluation: True
+      limit_vel_cmd_in_traj: False
+      stateful: True
+      critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
+      BaseObstacle.scale: 0.5
+      PathAlign.scale: 32.0
+      GoalAlign.scale: 24.0
+      PathAlign.forward_point_distance: 0.1
+      GoalAlign.forward_point_distance: 0.1
+      PathDist.scale: 32.0
+      GoalDist.scale: 24.0
+      RotateToGoal.scale: 32.0
+      RotateToGoal.slowing_factor: 5.0
+      RotateToGoal.lookahead_time: -1.0
 
 
 local_costmap:
@@ -293,7 +333,7 @@ global_costmap:
 
       global_frame: <robot_namespace>/map
       robot_base_frame: <robot_namespace>/base_link
-      robot_radius: 0.26
+      robot_radius: 0.46
       resolution: 0.05
       track_unknown_space: true
       plugins: ["static_layer", "inflation_layer"]
@@ -319,8 +359,11 @@ global_costmap:
         map_subscribe_transient_local: True
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 10.0
-        inflation_radius: 0.35
+        enabled: true
+        inflation_radius: 0.85
+        cost_scaling_factor: 1.0
+        inflate_unknown: false
+        inflate_around_unknown: true
       always_send_full_costmap: True
 
 # The yaml_filename does not need to be specified since it going to be set by defaults in launch.
