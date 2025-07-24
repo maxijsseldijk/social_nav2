@@ -6,7 +6,7 @@ from sensor_msgs.msg import LaserScan
 import math
 from visualization_msgs.msg import Marker
 import time
-from geometry_msgs.msg import Point, PolygonStamped
+from geometry_msgs.msg import Point
 from core_custom_messages.msg import PointArray
 from rclpy.exceptions import ROSInterruptException
 
@@ -29,21 +29,30 @@ class SafeCorridor(Node):
             PointArray, f'{self.get_namespace()}/critical_points', 10)
         self.boundary_publisher_rviz = self.create_publisher(
             Marker, f'{self.get_namespace()}/critical_points_rviz', 10)
-        # Not used ?
-        self.safe_corridor_rviz_pub_ = self.create_publisher(
-            PolygonStamped, f'{self.get_namespace()}/safe_corridor', 10)
 
-        self.declare_parameter('use_circular_zone', True)
-        self.use_circular_zone = self.get_parameter(
-            'use_circular_zone').value
+        self.declare_parameter('append_square_zone', True)
+        self.append_square_zone = self.get_parameter(
+            'append_square_zone').value
 
-        self.declare_parameter('circular_zone_radius', 3.0)
-        self.circular_zone_radius = self.get_parameter(
-            'circular_zone_radius').value
+        self.declare_parameter('square_half_length', 3.0)
+        self.square_half_length = self.get_parameter(
+            'square_half_length').value
 
-        self.declare_parameter('num_circular_zone_points', 20)
-        self.num_circular_zone_points = self.get_parameter(
-            'num_circular_zone_points').value
+        self.declare_parameter('mid_points_offset', 0.2)
+        self.mid_points_offset = self.get_parameter(
+            'mid_points_offset').value
+
+        self.declare_parameter('num_square_zone_points', 20)
+        self.num_square_zone_points = self.get_parameter(
+            'num_square_zone_points').value
+
+        if self.num_square_zone_points < 4 and self.append_square_zone:
+            raise ValueError("Invalid configuration: num_square_zone_points must be >= 4 "
+                             "when append_square_zone is True")
+        if self.num_square_zone_points % 4 != 0 and self.append_square_zone:
+            self.get_logger().warn('Number of square zone points is not divisible by 4. '
+                                   'Consider making it divisible by four, to have an uniform zone.'
+                                   )
 
         self.declare_parameter('number_of_boundary_points', 15)
         self.number_of_boundary_points = self.get_parameter(
@@ -70,27 +79,45 @@ class SafeCorridor(Node):
         """Fuction that returns a constant for a point outside the max_distance."""
         return (self.max_distance, self.max_distance)
 
-    def append_circular_zone(self, boundary_points: list) -> list:
+    def insert_square_zone(self, boundary_points: list) -> list:
         """
-        Append a circular zone to the boundary points.
+        Append a square zone to the boundary points.
 
-        This function adds a point at the maximum distance in a circular pattern
-        to ensure the safe corridor is closed.
-
-        Args:
-            boundary_points (list): The list of boundary points to which the circular zone add.
+        This function adds points along the perimeter of a square
+        The number of points is determined by self.num_square_zone_points.
 
         Returns
         -------
-            list: The updated list of boundary points with the circular zone appended.
+            list: The updated list of boundary points with the square zone appended.
 
         """
-        angle_increment = 2 * math.pi / self.num_circular_zone_points
-        for i in range(self.num_circular_zone_points):
-            angle = i * angle_increment
-            x = self.circular_zone_radius * math.cos(angle)
-            y = self.circular_zone_radius * math.sin(angle)
-            boundary_points.append((x, y))
+        num_points = self.num_square_zone_points
+
+        half_length = self.square_half_length
+        mid_points_offset = self.mid_points_offset
+        points_per_side = [num_points // 4] * 4
+        for i in range(num_points % 4):
+            points_per_side[i] += 1
+
+        corners = [
+            (-half_length, -half_length),
+            (half_length,  -half_length),
+            (half_length,   half_length),
+            (-half_length,  half_length),
+        ]
+        for side in range(4):
+            start = corners[side]
+            end = corners[(side + 1) % 4]
+            n_side = points_per_side[side]
+            for i in range(n_side):
+                t = i / n_side
+                x = start[0] + (end[0] - start[0]) * t
+                y = start[1] + (end[1] - start[1]) * t
+                # Move the middle point closer to the center
+                if n_side >= 2 and i == n_side // 2:
+                    x = x * (1 - mid_points_offset)
+                    y = y * (1 - mid_points_offset)
+                boundary_points.append((x, y))
         return boundary_points
 
     def timer_callback(self):
@@ -102,8 +129,8 @@ class SafeCorridor(Node):
 
         boundary_points = []
         remaining_points = self.laser_data.copy()
-        if self.use_circular_zone:
-            remaining_points = self.append_circular_zone(remaining_points)
+        if self.append_square_zone:
+            remaining_points = self.insert_square_zone(remaining_points)
 
         closest_obstacle = min(
             remaining_points, key=lambda x: x[0]**2 + x[1]**2)
@@ -144,6 +171,9 @@ class SafeCorridor(Node):
                     Adding constant far measurement, {points_to_add} times.')
                 for _ in range(points_to_add):
                     boundary_points.append(self.return_max_dist_point())
+            if len(remaining_points) > 0:
+                self.get_logger().error(
+                    f'safe corridor incomplete with {self.number_of_boundary_points}')
         # Copy data for visualization as the boundary_points will be modified
         boundary_point_viz = boundary_points.copy()
 

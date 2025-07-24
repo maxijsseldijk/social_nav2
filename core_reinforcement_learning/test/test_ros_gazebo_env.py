@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import MagicMock
 from core_reinforcement_learning.ros_gazebo_env import GazeboEnv
 import numpy as np
+import time
 from core_reinforcement_learning.publish_agents_velocity import (
     OUTSIDE_RANGE_VELOCITY, OUTSIDE_RANGE_LOC
 )
@@ -24,6 +25,17 @@ class FakeParameterValue:
             value, list) and value else value
 
 
+class FakeTime:
+    @property
+    def nanoseconds(self):
+        return int(time.time() * 1e9)
+
+
+class FakeClock():
+    def now(self):
+        return FakeTime()
+
+
 class FakeNode:
     def __init__(self, parameters):
         self.parameters = parameters
@@ -31,6 +43,7 @@ class FakeNode:
         self.subscriptions = []
         self.clients = []
         self.publishers = []
+        self._fake_clock = FakeClock()
 
     def get_parameter(self, name):
         return self.parameters.get(name, FakeParameter(None))
@@ -39,10 +52,7 @@ class FakeNode:
         return self.logger
 
     def get_clock(self):
-        return self
-
-    def now(self):
-        return self
+        return self._fake_clock
 
     def to_msg(self):
         return self

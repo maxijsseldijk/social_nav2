@@ -18,11 +18,12 @@
 
   construct_safe_corridor:
     ros__parameters:
-      number_of_boundary_points: 5
+      number_of_boundary_points: 6
       callback_frequency: 10 #Hz
-      use_circular_zone: True
-      num_circular_zone_points: 20
-      circular_zone_radius: 3.0
+      append_square_zone: True
+      num_square_zone_points: 16
+      square_half_length: 3.0
+      mid_points_offset: 0.2                    # Scaled the midpoints on the square_zone inwards
 
 
   train_rl:
@@ -45,11 +46,10 @@
       timed_out:
         time_out_limit: 20 # Number of timesteps to reset the simulation if the robot does not move.
       goal_reached:
-        at_goal_time_threshold: 3 # REQUIRED even when not using as a reward to prevent resetting sim too soon
         goal_threshold: 0.7
         reward: 1.0
-      collision:
-        reward: -3.0
+        at_goal_time_threshold: 5.0 # REQUIRED time in s before consequative goal reached can be given. Necassary as NAV2 sometimes hangs 
+      collision: 
       proxemics:
         min_reward: -3.0
         max_reward: 0.0
