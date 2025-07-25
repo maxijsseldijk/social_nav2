@@ -25,7 +25,7 @@ def generate_launch_description():
     use_social_zone = LaunchConfiguration('use_social_zone')
     laser_enabled_agents = LaunchConfiguration('laser_enable_agents')
     agent_names = LaunchConfiguration('agent_names')
-    use_telop = LaunchConfiguration('use_teleop')
+    use_teleop = LaunchConfiguration('use_teleop')
     use_rl = LaunchConfiguration('use_rl')
     use_respawn = LaunchConfiguration('use_respawn')
     log_level = LaunchConfiguration('log_level')
@@ -128,6 +128,7 @@ def generate_launch_description():
             'main_parameters_file': main_parameters_file,
             'use_respawn': use_respawn,
             'use_social_zone': use_social_zone,
+            'use_teleop': use_teleop,
             'world': world,
             'log_level': log_level,
             'laser_enable_agents': laser_enabled_agents,
@@ -145,7 +146,6 @@ def generate_launch_description():
         executable='publish_odom_from_mocap_and_vel',
         name='publish_odom_from_mocap_and_vel',
         namespace=namespace,
-        # parameters=[{'use_sim_time': use_sim_time}],
         output='screen',
         condition=UnlessCondition(use_sim_time),
     )
@@ -165,20 +165,8 @@ def generate_launch_description():
             'config': os.path.join(package_path, 'config', 'mux.yaml'),
             'use_rl': use_rl,
         },
-        condition=IfCondition(use_telop),
+        condition=IfCondition(use_teleop),
 
-    )
-
-    teleop_keyboard = Node(
-        package='teleop_twist_keyboard',
-        executable='teleop_twist_keyboard',
-        name='teleop_keyboard',
-        output='screen',
-        prefix='xterm -e',
-        remappings=[
-            ('/cmd_vel', [namespace, '/cmd_vel_key'])
-        ],
-        condition=IfCondition(use_telop),
     )
 
     return LaunchDescription([
@@ -198,7 +186,6 @@ def generate_launch_description():
         declare_main_parameters_file_cmd,
 
         agent_launch,
-        teleop_keyboard,
         publish_odom_node,
         twist_mux,
 

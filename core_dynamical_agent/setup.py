@@ -35,6 +35,8 @@ setup(
     entry_points={
         'console_scripts': [
             'publish_odom_from_mocap_and_vel = core_dynamical_agent.publish_odom_from_mocap_and_vel:main',
+            'agent_test_node = core_dynamical_agent.agent_test_node:main'
+
         ],
     },
 )

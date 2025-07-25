@@ -1,6 +1,6 @@
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, Twist, TwistWithCovariance
 from nav_msgs.msg import Odometry
 import time
 
@@ -16,7 +16,7 @@ class PublishOdomFromMocapAndVel(Node):
                          automatically_declare_parameters_from_overrides=True)
         self.ns = self.get_namespace().strip('/')
         self.get_logger().info('PublishOdomFromMocapAndVel node has been initialized.')
-        self.create_subscription(Odometry, 'odomtest', self.odom_callback, 10)
+        self.create_subscription(Twist, 'cmd_vel', self.cmd_vel_callback, 10)
         self.create_subscription(
             PoseStamped, f'/mocap/{self.ns}/pose', self.mocap_pose_callback, 10)
         self.odom_pub = self.create_publisher(Odometry, 'odometrytest', 10)
@@ -29,11 +29,14 @@ class PublishOdomFromMocapAndVel(Node):
 
         self.timer = self.create_timer(0.05, self.publish_fused_odom)
 
-    def odom_callback(self, msg):
-        self.latest_twist = msg.twist
+    def cmd_vel_callback(self, msg: Twist):
+        twist_msg = TwistWithCovariance()
+        twist_msg.twist = msg
+
+        self.latest_twist = twist_msg
         self.latest_twist_time = self.get_clock().now()
 
-    def mocap_pose_callback(self, msg):
+    def mocap_pose_callback(self, msg: PoseStamped):
         self.latest_pose = msg.pose
         self.latest_pose_time = self.get_clock().now()
 
@@ -51,7 +54,7 @@ class PublishOdomFromMocapAndVel(Node):
             odom_msg.twist = self.latest_twist
             self.odom_pub.publish(odom_msg)
         else:
-            self.get_logger().warn("Waiting for reliable mocap and odom data...")
+            self.get_logger().warn("Waiting for reliable mocap and cmd_vel data...")
             time.sleep(1)
 
 

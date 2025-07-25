@@ -384,7 +384,7 @@ def generate_launch_description():
         executable='teleop_twist_keyboard',
         name='teleop_keyboard',
         output='screen',
-        prefix='xterm -e',
+        prefix=f'xterm -title "Robot Control - {robot}" -e',
         remappings=[
             ('/cmd_vel', [PathJoinSubstitution([namespace,
              TextSubstitution(text=str(robot))]), '/cmd_vel_key'])
@@ -393,8 +393,10 @@ def generate_launch_description():
     )
 
     launch_description = LaunchDescription()
-    launch_description.add_action(gazebo_launch)
-    launch_description.add_action(office_world_launch)
+    if get_yaml_param(params, 'use_sim_time'):
+        launch_description.add_action(gazebo_launch)
+        launch_description.add_action(office_world_launch)
+
     for robot_launch in robot_instance_cmd:
         launch_description.add_action(robot_launch)
 
@@ -403,8 +405,9 @@ def generate_launch_description():
 
     launch_description.add_action(teleop_keyboard)
     launch_description.add_action(twist_mux)
-    launch_description.add_action(set_pause_unpause_service_bridge)
-    launch_description.add_action(set_model_pose_service_bridge)
+    if get_yaml_param(params, 'use_sim_time'):
+        launch_description.add_action(set_pause_unpause_service_bridge)
+        launch_description.add_action(set_model_pose_service_bridge)
 
     # Small delay to make sure the world is loaded before launching the robot
     launch_description.add_action(TimerAction(

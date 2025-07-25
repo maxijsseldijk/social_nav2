@@ -60,7 +60,7 @@ class BaseClassEnv(gym.Env, ABC):
             'rng',  np.random.default_rng(self.seed))
         self.node = node
         self.train = self.node.get_parameter('train').value
-
+        self.hardware_mode = not self.node.get_parameter('use_sim_time').value
         self.time_step_length = self.node.get_parameter(
             'time_step_length').value
         self.rl_action_output = self.node.get_parameter(
@@ -136,12 +136,13 @@ class BaseClassEnv(gym.Env, ABC):
         # Initialize the world interaction nodes
         self.world_param = self.node.get_parameter('world').value
         self.pause_node = PauseSimulation(
-            node=self.node, world=self.world_param)
+            node=self.node, world=self.world_param, hardware_mode=self.hardware_mode)
         self.pause_node.change_pause_simulation(pause=False)
         self.reset_gazebo = ResetSimulation(node=self.node, robot_names=self.robot_names,
                                             agent_names=self.agent_names,
                                             TaskGenerator=self.TaskGenerator,
-                                            world=self.world_param, rng=self.rng)
+                                            world=self.world_param, rng=self.rng,
+                                            hardware_mode=self.hardware_mode)
         # Initialize the publishers
         # TODO needs if statements for when these publishers should exist
         self.plan_publisher = self.node.create_publisher(
@@ -1827,7 +1828,6 @@ class GazeboEnv(BaseClassEnv):
         return int(task_number)
 
     def _publish_task_number(self):
-        """Publish task number with improved reliability and validation."""
         if self.task_number < 0 or self.task_number >= len(self.task_list):
             self.node.get_logger().error(
                 f'Invalid task number {self.task_number}, '

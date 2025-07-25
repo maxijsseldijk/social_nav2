@@ -37,6 +37,7 @@ def launch_setup(context):
     namespace = LaunchConfiguration('namespace')
     map_yaml_file = LaunchConfiguration('map_yaml_file')
     use_sim_time = LaunchConfiguration('use_sim_time')
+    use_sim_time_value = use_sim_time.perform(context)
     nav2_params_file = LaunchConfiguration('nav2_params_file')
     main_parameters_file = LaunchConfiguration('main_parameters_file')
     autostart = LaunchConfiguration('autostart')
@@ -51,18 +52,22 @@ def launch_setup(context):
     pkg_path = get_package_share_directory('core_cleaning_robot')
     launch_dir = os.path.join(pkg_path, 'launch')
 
-    xacro_file = os.path.join(
-        pkg_path, 'models', 'turtle_bot', 'core_turtlebot3_waffle_pi', 'model.sdf.xacro')
-    robot_description_config = xacro.process_file(xacro_file,
-                                                  mappings={
-                                                      'name': namespace_value,
-                                                      'width': width,
-                                                      'length': length,
-                                                      'height': height,
-                                                  }
-                                                  )
-
-    model_description = robot_description_config.toxml()
+    if use_sim_time_value.lower() == 'true':
+        # xacro_file = os.path.join(
+        #    pkg_path, 'models', 'cleaning_robot',  'robot.urdf.xacro')
+        xacro_file = os.path.join(
+            pkg_path, 'models', 'turtle_bot', 'core_turtlebot3_waffle_pi', 'model.sdf.xacro')
+        robot_description_config = xacro.process_file(xacro_file,
+                                                      mappings={
+                                                          'name': namespace_value,
+                                                          'width': width,
+                                                          'length': length,
+                                                          'height': height,
+                                                      }
+                                                      )
+        model_description = robot_description_config.toxml()
+    else:
+        model_description = ''
 
     ros_gz_sim_create_node = Node(
         package='ros_gz_sim',
@@ -81,6 +86,8 @@ def launch_setup(context):
             '-P', pose['P'],
             '-Y', pose['Y'],
         ],
+        condition=IfCondition(use_sim_time)
+
     )
 
     robot_state_publisher = Node(
@@ -94,6 +101,8 @@ def launch_setup(context):
             {'robot_description': model_description},
             {'frame_prefix': f'{namespace_value}/'}
         ],
+        condition=IfCondition(use_sim_time)
+
     )
     robot_joint_state_publisher = Node(
 
@@ -104,8 +113,9 @@ def launch_setup(context):
         output='screen',
         parameters=[
             {'use_sim_time': use_sim_time},
-
         ],
+        condition=IfCondition(use_sim_time)
+
     )
 
     ros_gz_bridge_node = Node(
@@ -124,16 +134,18 @@ def launch_setup(context):
         ],
         remappings=[
             (f'/model/{namespace_value}/pose',
-             f'/{namespace_value}/pose'),
+                f'/{namespace_value}/pose'),
             (f'/model/{namespace_value}/cmd_vel',
-             f'/{namespace_value}/cmd_vel'),
+                f'/{namespace_value}/cmd_vel'),
             (f'/model/{namespace_value}/scan', f'/{namespace_value}/scan'),
             (f'/model/{namespace_value}/scan/points',
-             f'/{namespace_value}/scan/points'),
+                f'/{namespace_value}/scan/points'),
             (f'/model/{namespace_value}/odometry',
-             f'/{namespace_value}/odometry'),
+                f'/{namespace_value}/odometry'),
             (f'/model/{namespace_value}/odometry_tf', '/tf'),
         ],
+        condition=IfCondition(use_sim_time)
+
     )
 
     create_static_transform = GroupAction(

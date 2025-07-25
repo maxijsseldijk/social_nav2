@@ -172,7 +172,7 @@ class SafeCorridor(Node):
                 for _ in range(points_to_add):
                     boundary_points.append(self.return_max_dist_point())
             if len(remaining_points) > 0:
-                self.get_logger().error(
+                self.get_logger().info(
                     f'safe corridor incomplete with {self.number_of_boundary_points}')
         # Copy data for visualization as the boundary_points will be modified
         boundary_point_viz = boundary_points.copy()

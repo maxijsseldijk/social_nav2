@@ -8,6 +8,7 @@ from launch_ros.actions import Node
 from launch import LaunchDescription
 from launch.actions import (DeclareLaunchArgument, GroupAction,
                             IncludeLaunchDescription, OpaqueFunction)
+from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 
@@ -32,7 +33,8 @@ def launch_setup(context):
 
     radius = LaunchConfiguration('radius').perform(context)
     use_social_zone = LaunchConfiguration('use_social_zone')
-    
+    use_teleop = LaunchConfiguration('use_teleop')
+
     height = LaunchConfiguration('height').perform(context)
     world = LaunchConfiguration('world').perform(context)
 
@@ -61,24 +63,29 @@ def launch_setup(context):
         collide_bitmask = create_non_colliding_bitmask(
             agent_names, namespace_basename)
 
+        xacro_file = os.path.join(
+            pkg_path, 'models', 'agent', 'robot.urdf.xacro')
+
+        robot_description_config = xacro.process_file(xacro_file,
+                                                      mappings={
+                                                          'name': namespace_value,
+                                                          'radius': radius,
+                                                          'height': height,
+                                                          'laser_enable': laser_enable_agents,
+                                                          'collide_bitmask': collide_bitmask,
+                                                      }
+                                                      )
+
+        model_description = robot_description_config.toxml()
+
     else:
         collide_bitmask = '0x1'
+        model_description = ''
+
+    # xacro_file = os.path.join(
+    #    pkg_path, 'models', 'turtle_bot', 'core_turtlebot3_waffle_pi', 'model.sdf.xacro')
 
     # Get the robot description from the xacro file
-    xacro_file = os.path.join(
-            pkg_path, 'models', 'turtle_bot', 'core_turtlebot3_waffle_pi', 'model.sdf.xacro')
-
-    robot_description_config = xacro.process_file(xacro_file,
-                                                  mappings={
-                                                      'name': namespace_value,
-                                                      'radius': radius,
-                                                      'height': height,
-                                                      'laser_enable': laser_enable_agents,
-                                                      'collide_bitmask': collide_bitmask,
-                                                  }
-                                                  )
-
-    model_description = robot_description_config.toxml()
 
     ros_gz_sim_create_node = Node(
         package='ros_gz_sim',
@@ -97,6 +104,7 @@ def launch_setup(context):
             '-P', pose['P'],
             '-Y', pose['Y'],
         ],
+        condition=IfCondition(use_sim_time)
     )
 
     robot_state_publisher = Node(
@@ -110,6 +118,8 @@ def launch_setup(context):
             {'robot_description': model_description},
             {'frame_prefix': f'{namespace_value}/'}
         ],
+        condition=IfCondition(use_sim_time)
+
     )
 
     ros_gz_bridge_node = Node(
@@ -138,6 +148,8 @@ def launch_setup(context):
             (f'/model/{namespace_value}/scan/points',
              f'/{namespace_value}/scan/points'),
         ],
+        condition=IfCondition(use_sim_time)
+
     )
 
     create_static_transform = GroupAction(
@@ -191,12 +203,23 @@ def launch_setup(context):
 
         },
     )
-
+    teleop_keyboard = Node(
+        package='teleop_twist_keyboard',
+        executable='teleop_twist_keyboard',
+        name='teleop_keyboard',
+        output='screen',
+        prefix=f'xterm -title "Agent Control - {namespace_value}" -e',
+        remappings=[
+            ('/cmd_vel', [namespace, '/cmd_vel_key'])
+        ],
+        condition=IfCondition(use_teleop),
+    )
     return [
         create_static_transform,
         ros_gz_sim_create_node,
         robot_state_publisher,
         ros_gz_bridge_node,
+        teleop_keyboard,
         bringup_cmd,
     ]
 
@@ -265,6 +288,11 @@ def generate_launch_description():
         description='Condition to use social zone for the human agents.'
         'If disabled the agents do not observe the robot through a social zone.')
 
+    declare_use_teleop_cmd = DeclareLaunchArgument(
+        'use_teleop',
+        default_value='False',
+        description='Condition to enable the teleop keyboard for the robot.')
+
     declare_laser_enable_agents_cmd = DeclareLaunchArgument(
         'laser_enable_agents',
         default_value='False',
@@ -284,6 +312,7 @@ def generate_launch_description():
         declare_autostart_cmd,
         declare_use_respawn_cmd,
         declare_log_level_cmd,
+        declare_use_teleop_cmd,
         declare_use_social_zone_cmd,
         declare_laser_enable_agents_cmd,
 

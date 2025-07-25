@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 class PauseSimulation:
     """A class to manage the pausing and unpausing of a Gazebo simulation."""
 
-    def __init__(self, node: 'RLsimulation', world: str = 'default'):
+    def __init__(self, node: 'RLsimulation', world: str = 'default', hardware_mode: bool = False):
         """
         Initialize the PauseSimulation class.
 
@@ -20,6 +20,7 @@ class PauseSimulation:
         ----
             node (RLsimulation): The ROS node for the environment.
             world (str): The name of the world to control. Defaults to 'default'.
+            hardware_mode (bool): Describes if the function should be run on hardware.
 
         """
         self.node = node
@@ -27,17 +28,24 @@ class PauseSimulation:
         self.pause = self.node.create_client(
             ControlWorld, f"/world/{world}/control")
         self.critical_pause = False
+        self.hardware_mode = hardware_mode
         self.req = ControlWorld.Request()
 
-    def change_pause_simulation(self, pause: bool):
+    def change_pause_simulation(self, pause: bool) -> None:
         """
         Change the pause state of the simulation.
+
+        In case we are using hardware(determined by use_sim_time = False)
+        we will return without pausing the simulation.
 
         Args:
         ----
             pause (bool): True to pause the simulation, False to unpause.
 
         """
+        if self.hardware_mode:
+            return
+
         if self.critical_pause is True:
             pause = self.critical_pause
         else:
@@ -51,9 +59,12 @@ class PauseSimulation:
         except Exception as e:
             self.node.log_error(f"/pause_physics service call failed: {e}")
 
-    def set_gym_pause(self, pause: bool):
+    def set_gym_pause(self, pause: bool) -> None:
         """
         Set a critical pause for the simulation.
+
+        In case we are using hardware(determined by use_sim_time = False)
+        nothing will happen.
 
         Args:
         ----
@@ -80,7 +91,8 @@ class ResetSimulation:
     """A class to manage the resetting of the simulation."""
 
     def __init__(self, node: 'RLsimulation', robot_names: list, agent_names: list,
-                 TaskGenerator: dict, world: str = 'default', rng: np.random.Generator = None):
+                 TaskGenerator: dict, world: str = 'default', rng: np.random.Generator = None,
+                 hardware_mode: bool = False):
         """
         Initialize the ResetSimulation class.
 
@@ -92,6 +104,7 @@ class ResetSimulation:
             TaskGenerator (dict): The task generator parameters.
             world (str): The name of the world to control. Defaults to 'default'.
             rng (np.random.Generator): The random number generator. Defaults to None.
+            hardware_mode (bool): Describes if the function should be run on hardware.
 
         """
         self.node = node
@@ -103,6 +116,7 @@ class ResetSimulation:
         self.req = SetEntityPose.Request()
         self.robot_names = robot_names
         self.agent_names = agent_names
+        self.hardware_mode = hardware_mode
         self.TaskGenerator = TaskGenerator
 
     def get_value(self, param):
@@ -191,11 +205,16 @@ class ResetSimulation:
         """
         Reset the simulation for a given task.
 
+        In case we are using hardware(determined by use_sim_time = False)
+        we will return without resetting the simulation.
+
         Args:
         ----
             task (str): The task to reset the simulation for.
 
         """
+        if self.hardware_mode:
+            return
         while not self.reset.wait_for_service(timeout_sec=1.0):
             self.node.get_logger().info('Reset sim service not available, waiting...')
 

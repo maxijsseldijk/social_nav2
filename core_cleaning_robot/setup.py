@@ -37,6 +37,7 @@ setup(
     entry_points={
         'console_scripts': [
             'publish_robot_as_people_node = core_cleaning_robot.publish_robot_as_people_node:main',
+            'robot_test_node = core_cleaning_robot.robot_test_node:main'
         ],
     },
 )
