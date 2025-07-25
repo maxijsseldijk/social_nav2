@@ -164,8 +164,8 @@ class BaseClassEnv(gym.Env, ABC):
         # As the task may be published before the waypoint following node is started,
         # the QoS profile is set to transient local.
         qos_profile_task = QoSProfile(depth=1)
+        qos_profile_task.durability = QoSDurabilityPolicy.TRANSIENT_LOCAL
         qos_profile_task.reliability = QoSReliabilityPolicy.RELIABLE
-        qos_profile_task.durability = QoSDurabilityPolicy.VOLATILE
 
         self.task_number_publisher = self.node.create_publisher(
             Int32Stamped, '/task_number', qos_profile_task)
@@ -1826,6 +1826,24 @@ class GazeboEnv(BaseClassEnv):
             self.eval_step += 1
         return int(task_number)
 
+    def _publish_task_number(self):
+        """Publish task number with improved reliability and validation."""
+        if self.task_number < 0 or self.task_number >= len(self.task_list):
+            self.node.get_logger().error(
+                f'Invalid task number {self.task_number}, '
+                f'valid range: 0-{len(self.task_list)-1}')
+            return
+
+        task_msg = Int32Stamped()
+        task_msg.data = self.task_number
+        task_msg.header.frame_id = self.ns_robot
+        task_msg.header.stamp = self.node.get_clock().now().to_msg()
+
+        self.task_number_publisher.publish(task_msg)
+
+        self.node.get_logger().info(
+            f'Published task number {self.task_number})')
+
     def reset(self, seed=None):
         """
         Reset the simulation to the initial state by calling the reset service.
@@ -1847,23 +1865,17 @@ class GazeboEnv(BaseClassEnv):
 
         self.task_number = self.update_task_number()
 
-        self.node.get_logger().error(
-            f"Task number: {self.task_number} Task list: {self.task_list} \
-              Number of tasks: {self.number_of_tasks}")
+        self.node.get_logger().info(
+            f"Task number: {self.task_number} Task list: {self.task_list} "
+            f"Number of tasks: {self.number_of_tasks}")
 
-        # Publish the task number such that it can be updated in the navigators
-        task_msg = Int32Stamped()
-        task_msg.data = self.task_number
-        task_msg.header.frame_id = self.ns_robot
-        task_msg.header.stamp = self.node.get_clock().now().to_msg()
-
-        self.task_number_publisher.publish(task_msg)
+        self._publish_task_number()
 
         task_params = self.node.get_parameters_by_prefix(
             f'TaskGenerator.param_change_list.{self.task_list[self.task_number]}')
         task_params = [(param_name, param_value.value)
                        for param_name, param_value in task_params.items()]
-        self.node.get_logger().error(f"Task params: {task_params}")
+        self.node.get_logger().info(f"Task params: {task_params}")
         self.send_controller_param_request(task_params)
 
         self.node.get_logger().error("Reset Requested")

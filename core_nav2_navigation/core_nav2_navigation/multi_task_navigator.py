@@ -15,7 +15,6 @@
 
 
 from enum import Enum
-import os
 import time
 import numpy as np
 from copy import deepcopy
@@ -33,6 +32,7 @@ from nav2_msgs.action import SmoothPath
 from nav2_msgs.srv import ClearEntireCostmap, GetCostmap, LoadMap, ManageLifecycleNodes
 
 import rclpy
+from rclpy.time import Time
 from rclpy.action import ActionClient
 from rclpy.duration import Duration as rclpyDuration
 from rclpy.node import Node
@@ -69,6 +69,7 @@ class MultiTaskNavigator(Node):
         self.result_future = None
         self.feedback = None
         self.status = None
+        self.trim_ns = self.get_namespace().strip('/')
 
         self.seed = self.get_parameter('seed').value
 
@@ -76,7 +77,8 @@ class MultiTaskNavigator(Node):
         self.params = self.get_parameters_by_prefix('TaskGenerator')
         self.rng = np.random.default_rng(self.seed)
         qos_profile_task = QoSProfile(depth=1)
-        qos_profile_task.durability = QoSDurabilityPolicy.VOLATILE
+        qos_profile_task.durability = QoSDurabilityPolicy.TRANSIENT_LOCAL
+        qos_profile_task.reliability = QoSReliabilityPolicy.RELIABLE
 
         self.subscription = self.create_subscription(
             Int32Stamped, '/task_number', self.task_number_callback, qos_profile_task)
@@ -86,6 +88,8 @@ class MultiTaskNavigator(Node):
         self.task_list = self.params['task_list'].value
         self.previous_task_timestamp = self.get_clock().now()
         self.task_number_timestamp = self.get_clock().now()
+        self.task_update_pending = False
+        self.task_validation_enabled = True
 
         amcl_pose_qos = QoSProfile(
             durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
@@ -158,49 +162,68 @@ class MultiTaskNavigator(Node):
         else:
             raise ValueError(f"Unsupported parameter type: {type(param)}")
 
-    def task_number_callback(self, msg):
-        self.task_number_timestamp = msg.header.stamp
-        if self.task_number_timestamp != self.previous_task_timestamp:
-            self.task_number = msg.data
-            self.info(
-                f'Task number updated to {self.task_number} at {self.task_number_timestamp}')
+    def task_number_callback(self, msg: Int32Stamped):
+        new_task_number = msg.data
 
-    def new_task_requested(self) -> bool:
-        return self.task_number_timestamp != self.previous_task_timestamp
+        new_time_rclpy = Time.from_msg(msg.header.stamp)
+        new_time_sec = new_time_rclpy.nanoseconds * 1e-9
+
+        old_time_sec = self.previous_task_timestamp.nanoseconds * 1e-9
+        timestamp_diff = new_time_sec - old_time_sec
+
+        if timestamp_diff > 0.001:
+            self.task_number = new_task_number
+            self.task_number_timestamp = new_time_rclpy
+            self.task_update_pending = True
+
+        else:
+            self.debug(f'Ignoring duplicate or old task message '
+                       f'(timestamp diff: {timestamp_diff:.6f}s)')
+
+    def newTaskRequested(self) -> bool:
+        return self.task_update_pending
 
     def sample_goal_pose(self, goal: list[float] | float) -> float:
         goal_typed = self.get_value(goal)
         return self.rng.uniform(
             goal_typed[0], goal_typed[1]) if len(goal_typed) == 2 else goal_typed[0]
 
-    def update_goal(self) -> list[PoseStamped]:
+    def updateGoal(self) -> list[PoseStamped]:
         """Update the goal based on the current task."""
-        self.cancelTask()
         self.previous_task_timestamp = self.task_number_timestamp
-        self.info(
-            f'Updating goal for task number {self.task_number} at {self.task_number_timestamp}')
-        trimmed_namespace = os.path.basename(
-            os.path.normpath(self.get_namespace()))
+        self.task_update_pending = False
         trajectory = self.params[
-            f'{self.task_list[self.task_number]}.{trimmed_namespace}.goals'
+            f'{self.task_list[self.task_number]}.{self.trim_ns}.goals'
         ].value
         task_route = []
         for point_name in trajectory:
             task_route.append([
                 self.sample_goal_pose(self.params[
-                    f'{self.task_list[self.task_number]}.{trimmed_namespace}.{point_name}.x_pose'
+                    f'{self.task_list[self.task_number]}.{self.trim_ns}.{point_name}.x_pose'
                 ].value),
                 self.sample_goal_pose(self.params[
-                    f'{self.task_list[self.task_number]}.{trimmed_namespace}.{point_name}.y_pose'
+                    f'{self.task_list[self.task_number]}.{self.trim_ns}.{point_name}.y_pose'
                 ].value)
             ])
         task_points = self.create_pose_from_route(task_route)
         return task_points
 
+    def getTaskUpdateStatus(self) -> dict:
+        """Get detailed status of task updates for debugging."""
+        current_time = self.get_clock().now()
+        current_time_sec = current_time.nanoseconds * 1e-9
+        prev_time_sec = self.previous_task_timestamp.nanoseconds * 1e-9
+
+        return {
+            'current_task_number': self.task_number,
+            'task_update_pending': self.task_update_pending,
+            'time_since_last_processed': current_time_sec - prev_time_sec,
+        }
+
     def create_pose_from_route(self, route) -> list[PoseStamped]:
         task_points = []
         task_pose = PoseStamped()
-        task_pose.header.frame_id = f'{self.get_namespace().strip("/")}/map'
+        task_pose.header.frame_id = f'{self.trim_ns}/map'
         task_pose.header.stamp = self.get_clock().now().to_msg()
         task_pose.pose.orientation.z = 1.0
         task_pose.pose.orientation.w = 0.0
