@@ -72,5 +72,4 @@ If you prefer not to use Docker, you can install manually:
 
 ## Current Issues and TODO
 - Implement agent velocity estimation instead of directly using odometry.
-- Improve transform reliability between agent and cleaning robot.
 

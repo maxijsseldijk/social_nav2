@@ -63,7 +63,7 @@ class PublishAgentsVelocity(Node):
             self.get_logger().fatal("Only one robot name is supported for this node.")
             rclpy.shutdown()
 
-        self.tf_buffer = Buffer()
+        self.tf_buffer = Buffer(cache_time=Duration(seconds=10.0))
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
         timer_period = 1 / self.callback_frequency  # seconds
@@ -296,11 +296,21 @@ class PublishAgentsVelocity(Node):
         """
         msg_pose, vel_vector = self.get_pose_and_velocity_vector(
             msg_to_transform)
+
         try:
-            tfs = self.tf_buffer.lookup_transform_full(new_frame, rclpy.time.Time(),
-                                                       msg_to_transform.header.frame_id,
-                                                       rclpy.time.Time(), new_frame,
-                                                       timeout=Duration(seconds=2.0))
+            source_frame = msg_to_transform.header.frame_id
+            if not self.tf_buffer.can_transform(new_frame, source_frame, rclpy.time.Time()):
+                self.get_logger().debug(
+                    f"Cannot transform from {source_frame} to {new_frame}")
+                return None, None
+
+            tfs = self.tf_buffer.lookup_transform(
+                new_frame,
+                source_frame,
+                rclpy.time.Time(),
+                timeout=Duration(seconds=0.1)
+            )
+
             transformed_pose = do_transform_pose_stamped(msg_pose, tfs)
             transform_velocity = do_transform_vector3(vel_vector, tfs)
 
