@@ -1,4 +1,4 @@
-# Social NAV2
+# Nav2SocialRL
 ![Release status](https://img.shields.io/badge/Status-In_progress-yellow)
 ![Documentation status](https://img.shields.io/badge/Documentation-In_progress-yellow)
 
@@ -21,21 +21,22 @@ All simulation parameters are centralized in `core_cleaning_robot/config/main_pa
 - `core_dynamical_agent`: Tools for creating dynamic agents, including a cylindrical agent using the SMAC2D planner and the social costmap plugin to mimic human behavior.
 - `core_gazebo_world`: World files and SLAM maps.
 - `core_nav2_navigation`: Local RL planner and waypoint following plugin.
+- `core_nav2_utils`: Holds global plan manipulation 
 - `core_reinforcement_learning`: RL algorithms and environment utilities.
 - `core_ros_gz_service_bridge`: Custom Gazebo service bridge for teleporting entities.
 - `core_twist_tools`: Twist mux functionality for the robot.
 - `rl_pure_pursuit_controller`: RL-based pure pursuit controller for Nav2.
 
 
-## Installation with Docker
-The easiest way to set up the environment is using Docker. This method installs all required packages and loads the environment correctly every time.
+## Installation with Docker devcontainer
+The easiest way to set up the environment is using a Docker devcontainer. This method installs all required packages and loads the environment correctly every time.
 1. Make sure docker is installed with the nvidia container toolkit for GPU acceleration. To do this follow the steps mentioned in
    [Nvidia Container Toolkit](   https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64&Distribution=Ubuntu&target_version=22.04&target_type=deb_local
    )
 
 2. Clone this repository:
    ```
-   git clone https://gitlab.tue.nl/omurarslan/student_projects/msc_max_van_ijsseldijk.git
+   git clone https://github.com/maxijsseldijk/Nav2SocialRL.git
    ```
 3. Ensure VSCode is installed with the Remote Development extension.
 4. Open the cloned repo in VSCode and run the container (this may take a few minutes as it installs ROS, NAV2, etc.).
