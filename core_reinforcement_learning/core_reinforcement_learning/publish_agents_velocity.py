@@ -3,7 +3,7 @@
 import rclpy
 import os
 from rclpy.duration import Duration
-import random
+from random import gauss
 from geometry_msgs.msg import Point, PoseStamped, Vector3Stamped
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Int8MultiArray as Int8MultiMsg
@@ -46,7 +46,8 @@ class PublishAgentsVelocity(Node):
         self.top_ns = self.get_namespace()
         self.num_people = len(self.agents)
         self.buffer_size = self.get_parameter('buffer_size').value
-        self.noise = self.get_parameter('sensor_noise').value
+        self.pos_noise = self.get_parameter('position_noise').value
+        self.vel_noise = self.get_parameter('velocity_noise').value
         self.callback_frequency = self.get_parameter(
             'callback_frequency').value
         robot_name = self.get_parameter('robot_names').value
@@ -109,28 +110,30 @@ class PublishAgentsVelocity(Node):
                         msg_pose_y = OUTSIDE_RANGE_LOC
                         msg_vel_x = OUTSIDE_RANGE_VELOCITY
                         msg_vel_y = OUTSIDE_RANGE_VELOCITY
-                        noise = 0.0
+                        pos_noise = 0.0
+                        vel_noise = 0.0
                     else:
                         msg_pose_x = msg[0].pose.position.x
                         msg_pose_y = msg[0].pose.position.y
                         msg_vel_x = msg[1].vector.x
                         msg_vel_y = msg[1].vector.y
-                        noise = self.noise
+                        pos_noise = self.pos_noise
+                        vel_noise = self.vel_noise
                     person = Person()
                     person.name = f'/agent{list_message.index(buffer) + 1}'
                     person.position = Point()
                     person.position.x = msg_pose_x + \
-                        random.uniform(-noise, noise)
+                        gauss(0, pos_noise/3)
                     person.position.y = msg_pose_y + \
-                        random.uniform(-noise, noise)
+                        gauss(0, pos_noise/3)
                     person.position.z = 0.0  # z position is not used
 
                     # Set the velocity of the person
                     person.velocity = Point()
                     person.velocity.x = msg_vel_x + \
-                        random.uniform(-noise, noise)
+                        gauss(0, vel_noise/3)
                     person.velocity.y = msg_vel_y + \
-                        random.uniform(-noise, noise)
+                        gauss(0, vel_noise/3)
                     person.velocity.z = 0.0  # z velocity is not used
                     person.reliability = 1.0
 

@@ -6,7 +6,8 @@
     ros__parameters:
       buffer_size: 1
       callback_frequency: 10 #Hz
-      sensor_noise: 0.03
+      position_noise: 0.03
+      velocity_noise: 0.10
       average_velocity: False
       smoothing_alpha: 0.1
 
