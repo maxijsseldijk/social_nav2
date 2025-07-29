@@ -40,6 +40,8 @@ class PublishAgentsVelocity(Node):
         # Obtain data from the main parameter script
         self.agents = self.get_parameter(
             'agent_names').get_parameter_value().string_array_value
+        if not self.agents:
+            raise ValueError('No agents shutting down')
 
         # Get the high level namespace as not the full namespace is passed to this node
         # See the launch file for more details.
@@ -213,26 +215,27 @@ class PublishAgentsVelocity(Node):
 
     def odometry_callback(self, msg: Odometry, agent_id: int):
         """
-        Append a message to the buffer for a specific agent.
+        Process odometry message and transform both pose and velocity to robot frame.
 
         Args:
         ----
-            buffer (dict): Buffer to store messages.
-            msg (tuple[PoseStamped, Vector3Stamped]): Message to append.
+            msg (Odometry): Odometry message from agent.
             agent_id (int): ID of the agent.
 
         """
         msg_pose, msg_velocity = self.get_pose_and_velocity_vector(msg)
 
-        # Only transform the pose as the velocity is not correctly calculated with moving frames
-        transformed_pose, _ = self.change_coordinate_frame(
+        # Transform both pose and velocity to robot frame
+        transformed_pose, transformed_velocity = self.change_coordinate_frame(
             self.robot_frame, msg)
         if self.average_velocity:
+            transformed_velocity = self.calculate_average_velocity(
+                agent_id, transformed_velocity)
             msg_velocity = self.calculate_average_velocity(
                 agent_id, msg_velocity)
 
         self.append_msg_to_buffer(
-            self.received_messages, (transformed_pose, msg_velocity), agent_id)
+            self.received_messages, (transformed_pose, transformed_velocity), agent_id)
         self.append_msg_to_buffer(
             self.untransformed_messages, (msg_pose, msg_velocity), agent_id)
 
