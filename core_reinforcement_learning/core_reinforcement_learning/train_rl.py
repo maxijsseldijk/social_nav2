@@ -131,7 +131,7 @@ def train_rl_model(rl_sim_node: RLsimulation, env: GazeboEnv,
         save_path=train_params['save_model_path'].value, node=rl_sim_node)
 
     calback_eval = EvalCallback(wrap_eval_env,
-                                n_eval_episodes=env.number_of_tasks * env.num_trials_scenario,
+                                n_eval_episodes=env.number_of_eval_tasks * env.num_trials_scenario,
                                 best_model_save_path=f"{train_params['save_model_path'].value}/",
                                 log_path=f"{train_params['save_model_path'].value}/",
                                 eval_freq=train_params['eval_freq'].value,
@@ -247,6 +247,8 @@ def main():
 
             if env.train:
                 train_rl_model(rl_sim_node, env, wrap_eval_env, model)
+                rl_sim_node.log_info('Done training shutting down')
+                rclpy.shutdown()
 
             else:
                 evaluate_rl_model(rl_sim_node, env,

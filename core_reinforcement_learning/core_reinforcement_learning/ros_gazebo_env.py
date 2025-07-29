@@ -1335,6 +1335,8 @@ class GazeboEnv(BaseClassEnv):
 
         """
         last_agents = self._get_safe_data('last_agents')
+        if last_agents is None:
+            return True
         if np.all([agent == np.array([OUTSIDE_RANGE_LOC, OUTSIDE_RANGE_LOC,
                                       OUTSIDE_RANGE_VELOCITY, OUTSIDE_RANGE_VELOCITY]
                                      ) for agent in last_agents]):

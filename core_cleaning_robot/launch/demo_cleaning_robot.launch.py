@@ -49,31 +49,35 @@ def get_pose_param_from_yaml(params: dict, entity: str, task: str) -> tuple:
         tuple: The x,y,z pose and roll, pitch, yaw orientation of the entity.
 
     """
-    x_pose = get_value(get_yaml_param(params, 'TaskGenerator')[
-                       f'{task}'][entity]['position']['x_pose'])
-    y_pose = get_value(get_yaml_param(params, 'TaskGenerator')[
-                       f'{task}'][entity]['position']['y_pose'])
-    z_pose = get_value(get_yaml_param(params, 'TaskGenerator')[
-                       f'{task}'][entity]['position']['z_pose'])
+    try:
+        x_pose = get_value(get_yaml_param(params, 'TaskGenerator')[
+            f'{task}'][entity]['position']['x_pose'])
+        y_pose = get_value(get_yaml_param(params, 'TaskGenerator')[
+            f'{task}'][entity]['position']['y_pose'])
+        z_pose = get_value(get_yaml_param(params, 'TaskGenerator')[
+            f'{task}'][entity]['position']['z_pose'])
 
-    if 'roll' not in get_yaml_param(params, 'TaskGenerator')[f'{task}'][entity]['orientation']:
-        x_orientation = get_value(get_yaml_param(
-            params, 'TaskGenerator')[f'{task}'][entity]['orientation']['x'])
-        y_orientation = get_value(get_yaml_param(
-            params, 'TaskGenerator')[f'{task}'][entity]['orientation']['y'])
-        z_orientation = get_value(get_yaml_param(
-            params, 'TaskGenerator')[f'{task}'][entity]['orientation']['z'])
-        w_orientation = get_value(get_yaml_param(
-            params, 'TaskGenerator')[f'{task}'][entity]['orientation']['w'])
-        roll, pitch, yaw = quat2euler(
-            [w_orientation, x_orientation, y_orientation, z_orientation])
-    else:
-        roll = get_value(get_yaml_param(params, 'TaskGenerator')[
-                         f'{task}'][entity]['orientation']['roll'])
-        pitch = get_value(get_yaml_param(params, 'TaskGenerator')[
-                          f'{task}'][entity]['orientation']['pitch'])
-        yaw = get_value(get_yaml_param(params, 'TaskGenerator')[
-                        f'{task}'][entity]['orientation']['yaw'])
+        if 'roll' not in get_yaml_param(params, 'TaskGenerator')[f'{task}'][entity]['orientation']:
+            x_orientation = get_value(get_yaml_param(
+                params, 'TaskGenerator')[f'{task}'][entity]['orientation']['x'])
+            y_orientation = get_value(get_yaml_param(
+                params, 'TaskGenerator')[f'{task}'][entity]['orientation']['y'])
+            z_orientation = get_value(get_yaml_param(
+                params, 'TaskGenerator')[f'{task}'][entity]['orientation']['z'])
+            w_orientation = get_value(get_yaml_param(
+                params, 'TaskGenerator')[f'{task}'][entity]['orientation']['w'])
+            roll, pitch, yaw = quat2euler(
+                [w_orientation, x_orientation, y_orientation, z_orientation])
+        else:
+            roll = get_value(get_yaml_param(params, 'TaskGenerator')[
+                f'{task}'][entity]['orientation']['roll'])
+            pitch = get_value(get_yaml_param(params, 'TaskGenerator')[
+                f'{task}'][entity]['orientation']['pitch'])
+            yaw = get_value(get_yaml_param(params, 'TaskGenerator')[
+                            f'{task}'][entity]['orientation']['yaw'])
+    except Exception:
+        raise ValueError(
+            f'Value not found in Taskgenerator for entity {entity} and task {task}')
 
     return x_pose, y_pose, z_pose, roll, pitch, yaw
 

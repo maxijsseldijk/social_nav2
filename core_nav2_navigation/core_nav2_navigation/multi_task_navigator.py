@@ -216,7 +216,6 @@ class MultiTaskNavigator(Node):
 
         return {
             'current_task_number': self.task_number,
-            'task_update_pending': self.task_update_pending,
             'time_since_last_processed': current_time_sec - prev_time_sec,
         }
 

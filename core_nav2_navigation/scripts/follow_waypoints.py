@@ -32,14 +32,12 @@ def main():
 
         while not navigator.isTaskComplete():
             if navigator.newTaskRequested():
-                navigator.get_logger().info(
-                    "New task requested - updating navigation goal")
 
                 navigator.cancelTask()
                 task_points = navigator.updateGoal()
 
                 status = navigator.getTaskUpdateStatus()
-                navigator.get_logger().error(
+                navigator.get_logger().info(
                     f"Task update status: {status}")
 
                 if task_points:
@@ -50,7 +48,7 @@ def main():
 
         if navigator.isTaskComplete() and not navigator.newTaskRequested():
             navigator.get_logger().info(
-                f"Task {navigator.task_number} completed successfully", throttle_duration_sec=5.0)
+                f"Task {navigator.task_number} completed successfully", throttle_duration_sec=10.0)
 
     navigator.get_logger().info("Navigation loop ended")
     navigator.destroy_node()

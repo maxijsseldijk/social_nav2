@@ -109,7 +109,7 @@ Visualization Manager:
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /agent1/robot_description
+        Value: /turtlebot1/robot_description
       Enabled: true
       Links:
         All Links Enabled: true
@@ -117,11 +117,57 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        base_footprint:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_imu:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        base_scan:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        camera_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_rgb_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        caster_back_left_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        caster_back_right_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        wheel_left_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        wheel_right_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
       Mass Properties:
         Inertia: false
         Mass: false
       Name: RobotModel
-      TF Prefix: /agent1
+      TF Prefix: /turtlebot1
       Update Interval: 0
       Value: true
       Visual Enabled: false
@@ -135,15 +181,15 @@ Visualization Manager:
         Depth: 5
         Durability Policy: Transient Local
         Filter size: 10
-        History Policy: Keep All
+        History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /cleaning_robot/map
+        Value: /turtlebot1/map
       Update Topic:
         Depth: 5
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /cleaning_robot/map_updates
+        Value: /turtlebot1/map_updates
       Use Timestamp: false
       Value: true
     - Alpha: 0.699999988079071
@@ -177,7 +223,7 @@ Visualization Manager:
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /cleaning_robot/robot_description
+        Value: /turtlebot2/robot_description
       Enabled: true
       Links:
         All Links Enabled: true
@@ -185,11 +231,29 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        base_footprint:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_scan:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        chassis:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
       Mass Properties:
         Inertia: false
         Mass: false
       Name: RobotModel
-      TF Prefix: /cleaning_robot
+      TF Prefix: /turtlebot2
       Update Interval: 0
       Value: true
       Visual Enabled: false
@@ -219,7 +283,7 @@ Visualization Manager:
         Filter size: 10
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /agent1/plan
+        Value: /turtlebot2/plan
       Value: true
     - Alpha: 1
       Class: rviz_default_plugins/Polygon
@@ -232,7 +296,7 @@ Visualization Manager:
         Filter size: 10
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /cleaning_robot/safe_corridor
+        Value: /turtlebot1/safe_corridor
       Value: true
     - Alpha: 1
       Buffer Length: 1
@@ -260,20 +324,20 @@ Visualization Manager:
         Filter size: 10
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /cleaning_robot/rl_local_plan
+        Value: /turtlebot1/rl_local_plan
       Value: true
     - Class: rviz_default_plugins/Marker
       Enabled: true
       Name: Marker
       Namespaces:
-        {}
+        safe_corridor: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
         Filter size: 10
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /cleaning_robot/critical_points_rviz
+        Value: /turtlebot1/critical_points_rviz
       Value: true
     - Class: rviz_default_plugins/MarkerArray
       Enabled: false
@@ -313,7 +377,7 @@ Visualization Manager:
         Filter size: 10
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /agent2/plan
+        Value: /turtlebot3/plan
       Value: true
     - Alpha: 1
       Buffer Length: 1
@@ -353,7 +417,7 @@ Visualization Manager:
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /agent2/robot_description
+        Value: /turtlebot3/robot_description
       Enabled: true
       Links:
         All Links Enabled: true
@@ -361,11 +425,29 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        base_footprint:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_scan:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        chassis:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
       Mass Properties:
         Inertia: false
         Mass: false
       Name: RobotModel
-      TF Prefix: /agent2
+      TF Prefix: /turtlebot3
       Update Interval: 0
       Value: true
       Visual Enabled: false
@@ -373,7 +455,7 @@ Visualization Manager:
       Buffer Length: 1
       Class: rviz_default_plugins/Path
       Color: 255; 0; 255
-      Enabled: true
+      Enabled: false
       Head Diameter: 0.30000001192092896
       Head Length: 0.20000000298023224
       Length: 0.30000001192092896
@@ -395,8 +477,8 @@ Visualization Manager:
         Filter size: 10
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /cleaning_robot/robot_local_plan
-      Value: true
+        Value: /turtlebot1/pure_pursuit_plan
+      Value: false
     - Alpha: 1
       Class: rviz_default_plugins/PointStamped
       Color: 204; 41; 204
@@ -410,7 +492,7 @@ Visualization Manager:
         Filter size: 10
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /cleaning_robot/lookahead_pose_rviz
+        Value: /turtlebot1/lookahead_pose_rviz
       Value: true
     - Alpha: 1
       Class: rviz_default_plugins/PointStamped
@@ -430,7 +512,7 @@ Visualization Manager:
   Enabled: true
   Global Options:
     Background Color: 255; 255; 255
-    Fixed Frame: cleaning_robot/map
+    Fixed Frame: turtlebot1/map
     Frame Rate: 30
   Name: root
   Tools:
@@ -482,11 +564,11 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 22.35702896118164
+      Scale: 41.609519958496094
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz_default_plugins)
-      X: -0.7603313326835632
-      Y: 6.857733249664307
+      X: -4.201196670532227
+      Y: 7.649341583251953
     Saved: ~
 Window Geometry:
   Displays:
@@ -505,4 +587,4 @@ Window Geometry:
     collapsed: false
   Width: 1850
   X: 70
-  Y: 27
+  Y: 1107

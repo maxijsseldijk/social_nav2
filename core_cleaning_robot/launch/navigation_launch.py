@@ -156,7 +156,6 @@ def launch_func(context):
                 package='core_nav2_navigation',
                 executable='follow_waypoints.py',
                 name='follow_waypoints',
-                emulate_tty=True,
                 output='screen',
                 parameters=[main_parameters_file],
                 remappings=[(f'{namespace_value}/amcl_pose',
