@@ -6,9 +6,12 @@ from sensor_msgs.msg import LaserScan
 import math
 from visualization_msgs.msg import Marker
 import time
+from rclpy.qos import QoSDurabilityPolicy, QoSReliabilityPolicy, QoSProfile
 from geometry_msgs.msg import Point
 from core_custom_messages.msg import PointArray
 from rclpy.exceptions import ROSInterruptException
+
+from people_msgs.msg import People
 
 
 class SafeCorridor(Node):
@@ -22,9 +25,31 @@ class SafeCorridor(Node):
     def __init__(self):
         """Initialize the SafeCorridor node."""
         super().__init__('safe_corridor_node')
-        self.get_logger().error('Safe Corridor Node has been started')
+        self.get_logger().error('Safe Corridor Node has been started with namespace ')
+        qos_profile_task = QoSProfile(depth=3)
+        qos_profile_task.durability = QoSDurabilityPolicy.VOLATILE
+        qos_profile_task.reliability = QoSReliabilityPolicy.RELIABLE
         self.create_subscription(
-            LaserScan, f'{self.get_namespace()}/scan', self.lidar_callback, 10)
+            LaserScan, f'{self.get_namespace()}/scan', self.lidar_callback, qos_profile_task)
+        self.declare_parameter('append_future_agent_points', True)
+        self.append_future_agent_points = self.get_parameter(
+            'append_future_agent_points').value
+        if self.append_future_agent_points:
+            self.create_subscription(
+                People, '/agents', self.agents_callback, 10)
+            self.declare_parameter('future_predict_time', 1.0)
+            self.declare_parameter('num_future_steps', 4)
+            self.future_time = self.get_parameter(
+                'future_predict_time').value
+            self.num_future_steps = self.get_parameter(
+                'num_future_steps').value
+            if self.num_future_steps == 1:
+                self.timestep_list = [self.future_time]
+            else:
+                step_size = (self.future_time) / (self.num_future_steps - 1)
+                self.timestep_list = [i *
+                                      step_size for i in range(self.num_future_steps)]
+
         self.boundary_publisher = self.create_publisher(
             PointArray, f'{self.get_namespace()}/critical_points', 10)
         self.boundary_publisher_rviz = self.create_publisher(
@@ -74,10 +99,37 @@ class SafeCorridor(Node):
         timer_period = 1 / self.callback_frequency  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
         self.laser_data = None
+        self.agents = []
 
     def return_max_dist_point(self):
         """Fuction that returns a constant for a point outside the max_distance."""
         return (self.max_distance, self.max_distance)
+
+    def insert_future_agent_points(self, boundary_points: list) -> list:
+        """
+        Insert future agent points into the boundary points list.
+
+        This method processes agent data to predict future positions and
+        adds them to the boundary points for collision avoidance.
+
+        Args:
+        ----
+            boundary_points (list): Current list of boundary points.
+
+        Returns
+        -------
+            list: Updated boundary points with future agent positions.
+
+        """
+        if not self.agents:
+            return boundary_points
+        for agent_data in self.agents:
+            pos_x, pos_y, vel_x, vel_y = agent_data
+            future_points = [(pos_x + vel_x * t, pos_y + vel_y * t)
+                             for t in self.timestep_list]
+            boundary_points.extend(future_points)
+
+        return boundary_points
 
     def insert_square_zone(self, boundary_points: list) -> list:
         """
@@ -131,6 +183,9 @@ class SafeCorridor(Node):
         remaining_points = self.laser_data.copy()
         if self.append_square_zone:
             remaining_points = self.insert_square_zone(remaining_points)
+        if self.append_future_agent_points:
+            remaining_points = self.insert_future_agent_points(
+                remaining_points)
 
         closest_obstacle = min(
             remaining_points, key=lambda x: x[0]**2 + x[1]**2)
@@ -167,8 +222,8 @@ class SafeCorridor(Node):
                 points_to_add = self.number_of_boundary_points - \
                     len(boundary_points)
                 self.get_logger().info(
-                    f'Not enough boundary points found. \
-                    Adding constant far measurement, {points_to_add} times.')
+                    f'Not enough boundary points found. '
+                    f'Adding constant far measurement, {points_to_add} times.')
                 for _ in range(points_to_add):
                     boundary_points.append(self.return_max_dist_point())
             if len(remaining_points) > 0:
@@ -229,6 +284,31 @@ class SafeCorridor(Node):
         y = radius * math.sin(angle)
         return x, y
 
+    def agents_callback(self, msg: People):
+        """
+        Process callbacks for agent position and velocity data.
+
+        This method extracts position and velocity information from the People message
+        and stores it in a 2D array format [position_x, position_y, velocity_x, velocity_y].
+
+        Args:
+        ----
+            msg (People): The People message containing agent data.
+
+        """
+        agents_data = []
+
+        for person in msg.people:
+            pos_x = person.position.x
+            pos_y = person.position.y
+            vel_x = person.velocity.x
+            vel_y = person.velocity.y
+
+            agent_data = [pos_x, pos_y, vel_x, vel_y]
+            agents_data.append(agent_data)
+
+        self.agents = agents_data
+
     def lidar_callback(self, msg: LaserScan):
         """
         Process calbacks for processing LiDAR data.
@@ -246,7 +326,8 @@ class SafeCorridor(Node):
         valid_points = []
         angle = msg.angle_min
         for distance in msg.ranges:
-            if not math.isinf(distance):  # Check if the distance is valid
+            # Check if the distance is valid
+            if not math.isinf(distance) and not distance < 0.2:
                 valid_points.append(self.polar_to_cartesian(distance, angle))
             angle += msg.angle_increment
 

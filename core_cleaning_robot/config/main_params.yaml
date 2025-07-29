@@ -24,7 +24,10 @@
       append_square_zone: True
       num_square_zone_points: 16
       square_half_length: 3.0
-      mid_points_offset: 0.2                    # Scaled the midpoints on the square_zone inwards
+      mid_points_offset: 0.2 
+      append_future_agent_points: True #Add agent linear extrapolated points to lidar data.
+      future_predict_time: 1.0 #s
+      num_future_steps: 4                 
 
 
   train_rl:
