@@ -39,7 +39,7 @@
       time_step_length: 0.3                     #The length of a timestep in seconds  
       reward_averaging: False                    #Determines if the reward should be averaged over the number of timesteps. Note can cause small error in pause time.
       reward_samples_per_timestep: 5            #The number of samples to use for the reward per timestep if reward averaging is used
-      collision_footprint_factor: 1.5           #Parameter used to multiply the robot footprint to reset the simulation before a real collision occurs.
+      collision_footprint_factor: 1.1           #Parameter used to multiply the robot footprint to reset the simulation before a real collision occurs.
       footprint_scale: 0.8                      #The scale of the footprint of the robot compared to the one used by NAV2. This is used for determining if there is a future collision.
       grid_size: 0.1                            #The size of the grid to use for discrete plan actions
       max_trial_timesteps: 150
@@ -48,13 +48,13 @@
       ### REWARD FUNCTION PARAMETERS ###
       reward_functions: ['collision','path_traversal','social_force_sfm']
       timed_out:
-        time_out_limit: 10 # Number of timesteps to reset the simulation if the robot does not move.
+        time_out_limit: 20 # Number of timesteps to reset the simulation if the robot does not move.
       goal_reached:
         goal_threshold: 0.7
         reward: 1.0
         at_goal_time_threshold: 5.0 # REQUIRED time in s before consequative goal reached can be given. Necassary as NAV2 sometimes hangs 
       collision: 
-        reward: -8.0
+        reward: -12.0
       proxemics:
         min_reward: -3.0
         max_reward: 0.0
@@ -78,7 +78,7 @@
       social_force_sfm:
         max_reward: 0.0
         min_reward: -8.0
-        min_social_force: -3.0                  #The social disturbance the robot should receive the min_reward for. The more negative the value the less the robot is punished for distrubing agents [-inf 0]
+        min_social_force: -4.0                  #The social disturbance the robot should receive the min_reward for. The more negative the value the less the robot is punished for distrubing agents [-inf 0]
         lambda_: 2.0          
         gamma_: 0.85                            #Parameter used to influence the cost of large head on velocities
         n: 2.0                                  #Parameter influencing the influence of interaction direction on the directional change along normal n_ij
@@ -87,13 +87,13 @@
         epsilon: 0.005                          #Parameter used to preffer overtaking on the right side
  
       ### EVALUATION PARAMETERS ###
-      sim_name: 'Expert_SFM_8_T_0_3_PLAYGROUND_0_9_lookahead_SDE_extra_envs'             #The name of the simulation for plotting purposes
+      sim_name: 'NO_PRE_PLAY_FIXED_ENV_SDE_140k'             #The name of the simulation for plotting purposes
       num_eval_per_scenario: 2                #The number of evaluations to perform per scenario
       load_results_only_mode: False            #Determines if the super evaluation mode should be used. This will simply generate plots from data in the result file
 
       ### INTERACTION PARAMETERS ###
-      interaction_range: 6.0                   #The interaction range from which the robot will check if there are agents in the vicinity that move towards it.
-      critical_interaction_range: 3.0          #The critical interaction range from which the robot will always apply the RL algorithm independent of the orientations and poses.
+      interaction_range: 5.0                   #The interaction range from which the robot will check if there are agents in the vicinity that move towards it.
+      critical_interaction_range: 5.0          #The critical interaction range from which the robot will always apply the RL algorithm independent of the orientations and poses.
       timesteps_before_switch_to_nav2: 2       #Number of timesteps before the agent switches to the nav2 planner if not in the interaction range
       timesteps_before_interaction: 0          #Number of timesteps before the agent will check if its in the interaction range during training. 
       timesteps_before_agents_in_range: 0      #Number of timesteps once in the interaction range that the future collision will find a future collision. Used when using use_constant_when_out_of_range is True  
@@ -103,7 +103,7 @@
       use_expert_demonstrations: False          #Determines if the expert demonstrations should be used for training the RL algorithm. If train is false the expert policy is used for evaluation.
 
       imitation_learning:
-        expert_class: 'SocialForcePolicy'      #The class of the expert demonstrations either Nav2Policy if the DWB planner is used or SocialForcePolicy if the social force model is used
+        expert_class: 'Nav2Policy'      #The class of the expert demonstrations either Nav2Policy if the DWB planner is used or SocialForcePolicy if the social force model is used
         imitation_algorithm: 'DAgger'          #The imitation learning algorithm to use for training the RL algorithm
         expert_noise_std: 0.001                #The noise standard deviation to add to the expert demonstrations
         expert_rollout_episodes: 50           #The number of episodes the expert demonstrations should be used for filling the replay buffer
@@ -114,16 +114,16 @@
         
       ### RL ALGORITHM PARAMETERS ###       
       SAC:
-        save_model_path: "Expert_SFM_8_T_0_3_PLAYGROUND_0_9_lookahead_SDE_extra_envs"
-        load_model_path: "Expert_SFM_8_T_0_3_PLAYGROUND_0_9_lookahead_SDE_extra_envs/model_100000"                
-        load_model: True                                          
+        save_model_path: "NO_PRE_PLAY_FIXED_ENV_SDE_V2"
+        load_model_path: "NO_PRE_PLAY_FIXED_ENV_SDE/model_140000"                
+        load_model: False                                          
 
-        load_replay_buffer_path: "Expert_SFM_8_T_0_3_PLAYGROUND_0_9_lookahead_SDE_extra_envs/replay_buffer_100000"
-        load_replay_buffer: True
+        load_replay_buffer_path: "Expert_SFM_8_T_0_3_PLAYGROUND_0_9_lookahead_SDE_extra_envs/replay_buffer_60000"
+        load_replay_buffer: False
 
         # SAC SB3 related parameters
         replay_buffer_size: 250000 
-        learning_starts: 2000               
+        learning_starts: 8000               
         net_arch: [128, 128]
         target_update_interval: 1
         train_freq: 2                  
@@ -133,7 +133,7 @@
         verbose: 1
         batch_size:  16
         ent_coef: 'auto_1.0'            
-        target_entropy: 0.0
+        target_entropy: -0.0
         gamma: 0.99                    
         tau: 0.005                     
         policy_lr: 0.0003
@@ -187,45 +187,45 @@
         # control point based on the social force model. It is used for imitation learning
         # to generate some social behaviour as a starting point.
         callback_frequency: 10 #Hz
-        state_nodes: ['lidar', 'agents', 'plan']
+        state_nodes: ['lidar', 'agents', 'plan','nav2_input' ]
         utility_nodes: ['costmap','footprint', 'robot_odom', 'agents_global_frame']
         costmap:
-          topic: 'cleaning_robot/global_costmap/costmap'
+          topic: 'turtlebot1/global_costmap/costmap'
           type: 'OccupancyGrid'
           callback: 'costmap_callback'
           
         footprint:
-          topic: 'cleaning_robot/local_costmap/published_footprint'
+          topic: 'turtlebot1/local_costmap/published_footprint'
           type: 'PolygonStamped'
           callback: 'footprint_callback'
 
         robot_odom:
-          topic: 'cleaning_robot/odometry'
+          topic: 'turtlebot1/odometry'
           type: 'Odometry'
           callback: 'odometry_callback'
 
         nav2_input:
-          topic: 'cleaning_robot/cmd_vel_nav'
+          topic: 'turtlebot1/cmd_vel_nav'
           type: 'Twist'
           callback: 'nav2_input_callback'
 
         plan:
-          topic: 'cleaning_robot/lookahead_pose' #'resampled_plan_local'
+          topic: 'turtlebot1/lookahead_pose' #'resampled_plan_local'
           type: 'PathWithLength'
           callback: 'plan_with_length_callback'
 
         global_plan:
-          topic: 'cleaning_robot/pure_pursuit_plan'
+          topic: 'turtlebot1/pure_pursuit_plan'
           type: 'Path'
           callback: 'global_plan_callback'
 
         lidar:
-          topic: 'cleaning_robot/critical_points'
+          topic: 'turtlebot1/critical_points'
           type: 'PointArray'
           callback: 'lidar_point_array_callback'
 
         lidar_raw:
-          topic: 'cleaning_robot/scan'
+          topic: 'turtlebot1/scan'
           type: 'LaserScan'
           callback: 'lidar_raw_callback'
 
@@ -240,7 +240,7 @@
           callback: 'agents_callback_global'
         
         sfm_control_point:
-          topic: 'cleaning_robot/robot_local_plan'
+          topic: 'turtlebot2/robot_local_plan'
           type: 'Path'
           callback: 'sfm_control_point_callback'
 
@@ -282,7 +282,7 @@
     # General RL settings shared between nodes
     use_rl: True
     use_social_zone: True                     #Determines if the agents should use the social zone for the social force model around the robot
-    use_social_zone_robot: True               #Determines if the robot should use the social zone for the social force model around the other agents
+    use_social_zone_robot: False               #Determines if the robot should use the social zone for the social force model around the other agents
     
     # The output of the RL algorithm. There are three options:
     # 1. plan: The RL algorithm will output a plan that the robot should follow. Can also be 
@@ -308,7 +308,7 @@
     # Navigation settings
     use_slam: False
     slam_params_file: 'config/mapper_params_online_async.yaml'
-    slam_map: 'maps/playground/playground_map.pgm'
+    slam_map: ''
 
     nav2_params_file_robot: 'config/nav2_params_cleaning_robot.yaml'
 
@@ -325,15 +325,15 @@
     # robot is used in the utilities. For multi-robot cases the framework needs to be be 
     # extended.
     robot_names: 
-      - "cleaning_robot"
+      - "turtlebot1"
     robot_frame: "base_link"
     
      # The names of other entities in the environment. The names can be anything however remember
      # to create an xml file with navigate_through_poses_<agent_name>.xml for each agent.
     agent_names: # ""
-     - "agent1"
-     - "agent2"
-     #- "agent3"
+     - "turtlebot2"
+     - "turtlebot3"
+     #- "turtlebot3"
      #- "agent4"
 
      
@@ -361,10 +361,10 @@
       task_list: [ 
         'env_a_north', 'env_a_south',
         'env_b_north', 'env_b_north_crossing', 'env_b_south', 'env_b_south_room_cross', 'env_b_north_room_cross',
-        'env_f', 'env_f_passing',
-        'env_h_1', 'env_h_2', 'env_h_2_2', 'env_h_3', 'env_h_3'
+        'env_f', 'env_f_passing', 'open1_circle_complex', 'open1_circle_four_way_left', 'open1_circle_four_way_right',
+        'env_h_1','env_h_3', 'env_h_3_2'
       ]
-      task_list_eval: [10, 11, 12, 13]  # Indices of env_h_1, env_h_2, env_h_2_2, env_h_3, env_h_3_2
+      task_list_eval: [ 12, 13, 14]  # Indices of env_h_1, env_h_2, env_h_2_2, env_h_3, env_h_3_2
 
       # The taskgenerator also allows for custom parameters for each task.
       param_change_list:
@@ -372,10 +372,428 @@
           #FollowPath.social_weight: 0.0
           FollowPath.distance_weight: 1.0
 
-      env_a_north:
-        cleaning_robot:
+          
+      exp_1:
+        turtlebot1:
           position:
-            x_pose: [-22.0, -20.9]
+            x_pose: [-1.9, -1.9]  # Start on right side of circle (3+5=8, radius=5)
+            y_pose: [2.5,2.5]  # Center y=1
+            z_pose: [0.04, 0.04]
+          orientation:
+            x: [0.0, 0.0]
+            y: [0.0, 0.0]
+            z: [0.9, 1.0]  # Facing toward circle center
+            w: [0.1, 0.2]
+          goals:
+            - "g0"
+          g0:
+            x_pose: [-4.0, -4.0]  # Goal on opposite side (3-5=-2, radius=5)
+            y_pose: [4.0, 4.0]
+
+        turtlebot2:
+          position:
+            x_pose: [2.8, 3.2]  # Start on top of circle
+            y_pose: [5.8, 6.0]  # Center y=1, radius=5, so 1+5=6
+            z_pose: 0.01
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: -0.7
+            w: 0.7
+          goals:
+            - "g0"
+          g0:
+            x_pose: [2.4, 3.7]  # Goal on bottom of circle
+            y_pose: [-3.8, -3.6]  # Center y=1, radius=5, so 1-5=-4
+
+        turtlebot3:
+          position:
+            x_pose: [-1.8, -1.6]  # Start on left side of circle
+            y_pose: [0.8, 1.2]
+            z_pose: 0.01
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+          goals:
+            - "g0"
+          g0:
+            x_pose: [7.8, 8.0]  # Goal on right side of circle
+            y_pose: [0.1, 1.9]
+
+      open1_circle_cross:
+        turtlebot1:
+          position:
+            x_pose: [5.8, 6.0]  # Start on right side of circle (3+5=8, radius=5)
+            y_pose: [0.8, 1.2]  # Center y=1
+            z_pose: [0.04, 0.04]
+          orientation:
+            x: [0.0, 0.0]
+            y: [0.0, 0.0]
+            z: [0.9, 1.0]  # Facing toward circle center
+            w: [0.1, 0.2]
+          goals:
+            - "g0"
+          g0:
+            x_pose: [1.3, 1.6]  # Goal on opposite side (3-5=-2, radius=5)
+            y_pose: [0.8, 1.2]
+
+        turtlebot2:
+          position:
+            x_pose: [2.8, 3.2]  # Start on top of circle
+            y_pose: [5.8, 6.0]  # Center y=1, radius=5, so 1+5=6
+            z_pose: 0.01
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: -0.7
+            w: 0.7
+          goals:
+            - "g0"
+          g0:
+            x_pose: [2.4, 3.7]  # Goal on bottom of circle
+            y_pose: [-3.8, -3.6]  # Center y=1, radius=5, so 1-5=-4
+
+        turtlebot3:
+          position:
+            x_pose: [-1.8, -1.6]  # Start on left side of circle
+            y_pose: [0.8, 1.2]
+            z_pose: 0.01
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+          goals:
+            - "g0"
+          g0:
+            x_pose: [7.8, 8.0]  # Goal on right side of circle
+            y_pose: [0.1, 1.9]
+
+      # Larger circular crossing with multiple waypoints - centered at (3,1)
+      open1_circle_complex:
+        turtlebot1:
+          position:
+            x_pose: [5.5, 5.8]  # Start on far right (radius ~4.5-4.8)
+            y_pose: [0.8, 1.2]
+            z_pose: [0.04, 0.04]
+          orientation:
+            x: [0.0, 0.0]
+            y: [0.0, 0.0]
+            z: [0.9, 1.0]  # Facing left toward center
+            w: [0.0, 0.1]
+          goals:
+            - "g0"
+          g0:
+            x_pose: [0.5, 0.8]  # Intermediate goal - center-left
+            y_pose: [0.8, 1.2]
+ 
+
+        turtlebot2:
+          position:
+            x_pose: [5.5, 5.8]  # Start on top-right of circle
+            y_pose: [4.5, 4.8]  # Above center (1+3.5-3.8)
+            z_pose: 0.01
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: -0.9
+            w: 0.4
+          goals:
+            - "g0"
+            - "g1"
+          g0:
+            x_pose: [2.8, 3.2]  # Cross through center
+            y_pose: [0.8, 1.2]
+          g1:
+            x_pose: [2.8, 3.2]  # End at bottom
+            y_pose: [-2.5, -2.2]  # Below center (1-3.5)
+
+        turtlebot3:
+          position:
+            x_pose: [0.0, 0.3]  # Start on left side
+            y_pose: [3.5, 3.8]  # Above center
+            z_pose: 0.01
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: -0.4
+            w: 0.9
+          goals:
+            - "g0"
+            - "g1"
+          g0:
+            x_pose: [2.8, 3.2]  # Cross through center
+            y_pose: [0.8, 1.2]
+          g1:
+            x_pose: [6.5, 6.8]  # End on far right
+            y_pose: [-1.2, -0.8]
+
+      # Four-way circular crossing - maximum complexity, centered at (3,1)
+      open1_circle_four_way:
+        turtlebot1:
+          position:
+            x_pose: [2.8, 3.2]  # Start at bottom of circle (center x)
+            y_pose: [-1.8, -1.6]  # Bottom (1-4.8)
+            z_pose: [0.04, 0.04]
+          orientation:
+            x: [0.0, 0.0]
+            y: [0.0, 0.0]
+            z: [1.0, 1.0]
+            w: [1.0, 1.0]
+          goals:
+            - "g0"
+          g0:
+            x_pose: [2.8, 3.2]  # Goal at top of circle
+            y_pose: [1.8, 2.0]  # Top (1+4.8)
+
+        turtlebot2:
+          position:
+            x_pose: [7.8, 8.7]  # Start on right side (3+5)
+            y_pose: [0.8, 1.2]
+            z_pose: 0.01
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 1.0  # Facing left (west)
+            w: 0.0
+          goals:
+            - "g0"
+          g0:
+            x_pose: [-1.8, -1.6]  # Goal on left side (3-5)
+            y_pose: [0.8, 1.2]
+
+        turtlebot3:
+          position:
+            x_pose: [-1.8, -1.6]  # Start on left side (3-5)
+            y_pose: [0.8, 1.2]
+            z_pose: 0.01
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0  # Facing right (east)
+            w: 1.0
+          goals:
+            - "g0"
+          g0:
+            x_pose: [-1.8, -1.6]  # Goal on right side (3+5)
+            y_pose: [0.8, 1.2]
+      # Four-way circular crossing - Left
+      open1_circle_four_way_left:
+        turtlebot1:
+          position:
+            x_pose: [2.8, 3.2]  # Start at bottom of circle (center x)
+            y_pose: [-1.6, -1.4]  # Bottom (1-4.8)
+            z_pose: [0.04, 0.04]
+          orientation:
+            x: [0.0, 0.0]
+            y: [0.0, 0.0]
+            z: [1.0, 1.0]
+            w: [1.0, 1.0]
+          goals:
+            - "g0"
+          g0:
+            x_pose: [2.8, 3.2]  # Goal at top of circle
+            y_pose: [1.8, 2.0]  # Top (1+4.8)
+
+        turtlebot2:
+          position:
+            x_pose: [7.8, 8.7]  # Start on right side (3+5)
+            y_pose: [0.8, 1.2]
+            z_pose: 0.01
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 1.0  # Facing left (west)
+            w: 0.0
+          goals:
+            - "g0"
+          g0:
+            x_pose: [-1.8, -1.6]  # Goal on left side (3-5)
+            y_pose: [0.8, 1.2]
+
+        turtlebot3:
+          position:
+            x_pose: [-1.8, -1.6]  # Start on left side (3-5)
+            y_pose: [0.8, 1.2]
+            z_pose: 0.01
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0  # Facing right (east)
+            w: 1.0
+          goals:
+            - "g0"
+          g0:
+            x_pose: [-1.8, -1.6]  # Goal on right side (3+5)
+            y_pose: [0.8, 1.2]
+      # Four-way circular crossing - maximum complexity, centered at (3,1)
+      open1_circle_four_way_right:
+        turtlebot1:
+          position:
+            x_pose: [2.8, 3.2]  # Start at bottom of circle (center x)
+            y_pose: [-1.8, -1.6]  # Bottom (1-4.8)
+            z_pose: [0.04, 0.04]
+          orientation:
+            x: [0.0, 0.0]
+            y: [0.0, 0.0]
+            z: [1.0, 1.0]
+            w: [1.0, 1.0]
+          goals:
+            - "g0"
+          g0:
+            x_pose: [2.8, 3.2]  # Goal at top of circle
+            y_pose: [1.8, 2.0]  # Top (1+4.8)
+
+        turtlebot2:
+          position:
+            x_pose: [7.8, 8.7]  # Start on right side (3+5)
+            y_pose: [0.8, 1.2]
+            z_pose: 0.01
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 1.0  # Facing left (west)
+            w: 0.0
+          goals:
+            - "g0"
+          g0:
+            x_pose: [7.8, 8.7]  # Start on right side (3+5)
+            y_pose: [0.8, 1.2]
+
+        turtlebot3:
+          position:
+            x_pose: [-1.8, -1.6]  # Start on left side (3-5)
+            y_pose: [0.8, 1.2]
+            z_pose: 0.01
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0  # Facing right (east)
+            w: 1.0
+          goals:
+            - "g0"
+          g0:
+            x_pose: [7.8, 8.7]  # Start on right side (3+5)
+            y_pose: [0.8, 1.2]
+
+      # Diagonal crossing circle - agents cross diagonally, centered at (3,1)
+      open1_circle_diagonal:
+        turtlebot1:
+          position:
+            x_pose: [6.3, 6.5]  # Start on northeast (3+3.3, 1+2.5)
+            y_pose: [1.1, 2.3]
+            z_pose: [0.04, 0.04]
+          orientation:
+            x: [0.0, 0.0]
+            y: [0.0, 0.0]
+            z: [0.9, 1.0]  # Facing toward circle center
+            w: [0.1, 0.2]
+          goals:
+            - "g0"
+          g0:
+            x_pose: [3.1, 3.3]  
+            y_pose: [2.5, 2.6]
+
+        turtlebot2:
+          position:
+            x_pose: [-0.3, -0.1]  # Start on southwest
+            y_pose: [-1.5, -1.3]
+            z_pose: 0.01
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.7  # Facing northeast
+            w: 0.7
+          goals:
+            - "g0"
+          g0:
+            x_pose: [6.3, 6.5]  # Goal on northeast
+            y_pose: [3.5, 3.7]
+
+        turtlebot3:
+          position:
+            x_pose: [-0.1, 0.1]  # Start on northwest (3-3.1, 1+2.8)
+            y_pose: [3.8, 4.0]
+            z_pose: 0.01
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: -0.7  # Facing southeast
+            w: 0.7
+          goals:
+            - "g0"
+          g0:
+            x_pose: [6.1, 6.3]  # Goal on southeast (3+3.1, 1-2.8)
+            y_pose: [-1.8, -1.6]
+
+      # Robot moves in figure-8 while agents cross linearly, centered at (3,1)
+      open1_circle_figure_eight:
+        turtlebot1:
+          position:
+            x_pose: [2.8, 3.2]  # Start at center-bottom
+            y_pose: [-1.2, -1.0]  # Below center
+            z_pose: [0.04, 0.04]
+          orientation:
+            x: [0.0, 0.0]
+            y: [0.0, 0.0]
+            z: [0.0, 0.0]
+            w: [1.0, 1.0]
+          goals:
+            - "g0"
+            - "g1"
+            - "g2"
+            - "g3"
+          g0:
+            x_pose: [5.8, 6.0]  # Right loop (3+3)
+            y_pose: [0.8, 1.2]
+          g1:
+            x_pose: [2.8, 3.2]  # Back to center
+            y_pose: [0.8, 1.2]
+          g2:
+            x_pose: [0.0, 0.2]  # Left loop (3-3)
+            y_pose: [0.8, 1.2]
+          g3:
+            x_pose: [2.8, 3.2]  # Return to center
+            y_pose: [-1.2, -1.0]
+
+        turtlebot2:
+          position:
+            x_pose: [-1.5, -1.3]  # Start far left (3-4.5)
+            y_pose: [0.8, 1.2]
+            z_pose: 0.01
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+          goals:
+            - "g0"
+          g0:
+            x_pose: [7.5, 7.7]  # Goal far right (3+4.5)
+            y_pose: [0.8, 1.2]
+
+        turtlebot3:
+          position:
+            x_pose: [2.8, 3.2]  # Start top-center
+            y_pose: [4.5, 4.7]  # Above center (1+3.5)
+            z_pose: 0.01
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: -1.0
+            w: 0.0
+          goals:
+            - "g0"
+          g0:
+            x_pose: [2.8, 3.2]  # Goal bottom-center
+            y_pose: [-2.5, -2.3]  # Below center (1-3.5)
+
+      env_a_north:
+        turtlebot1:
+          position:
+            x_pose: [-22.0, -21.2]
             y_pose: [0.8, 4.8]
             z_pose: [0.04, 0.04]
           orientation:
@@ -387,9 +805,9 @@
             - "g0"
           g0:
             x_pose: [-22.0, -20.9]
-            y_pose: [9.5, 12.8]
+            y_pose: [7.5, 9.8]
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [-22.0, -21.8]
             y_pose: [9.3, 10.7]
@@ -409,7 +827,7 @@
             x_pose: [-22.0, -21.8]
             y_pose: [0.8, 4.3]
 
-        agent2:
+        turtlebot3:
           position:
             x_pose: [-22.0, -21.8]
             y_pose: [9.3, 14.7]
@@ -430,9 +848,9 @@
             y_pose: [2.8, 6.3]
             
       env_a_south:
-        cleaning_robot:
+        turtlebot1:
           position:
-            x_pose: [-22.0, -20.9]
+            x_pose: [-22.0, -21.2]
             y_pose: [9.3, 10.7]
             z_pose: [0.04, 0.04]
           orientation:
@@ -444,9 +862,9 @@
             - "g0"
           g0:
             x_pose: [-22.0, -20.9]
-            y_pose: [3.8, 5.3]
+            y_pose: [5.8, 6.3]
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [-21.0, -20.9]
             y_pose: [1.3, 5.7]
@@ -466,7 +884,7 @@
             x_pose: [-21.1, -20.9]
             y_pose: [13.8, 15.3]
 
-        agent2:
+        turtlebot3:
           position:
             x_pose: [-21.0, -20.9]
             y_pose: [4.3, 8.7]
@@ -488,7 +906,7 @@
 
 
       env_f:
-        cleaning_robot:
+        turtlebot1:
           position:
             x_pose: [-4.0, -3.2]
             y_pose: [6.3, 7.8]
@@ -504,7 +922,7 @@
             x_pose: [-3.738164, -3.2]
             y_pose: [11.0, 13.0]
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [-2.2, 1.4]
             y_pose: [10.3, 10.7]
@@ -520,7 +938,7 @@
             x_pose: [-8.5, -5.5]
             y_pose: [9.3, 10.7]
 
-        agent2:
+        turtlebot3:
           position:
             x_pose: [-8.5, -8.5]
             y_pose: [9.3, 9.7]
@@ -537,7 +955,7 @@
             y_pose: [9.3, 10.7]
 
       env_f_passing:
-        cleaning_robot:
+        turtlebot1:
           position:
             x_pose: [-4.0, -3.2]
             y_pose: [6.3, 7.8]
@@ -553,7 +971,7 @@
             x_pose: [-3.738164, -3.2]
             y_pose: [11.0, 13.0]
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [-4.0, -3.8]
             y_pose: [13.7, 18.7]
@@ -573,7 +991,7 @@
             x_pose: [-4.0, -3.8]
             y_pose: [6.3, 7.8]
 
-        agent2:
+        turtlebot3:
           position:
             x_pose: [-8.5, -4.5]
             y_pose: [9.3, 9.7]
@@ -590,10 +1008,10 @@
             y_pose: [9.3, 9.7]
     
       env_b_north:
-        cleaning_robot:
+        turtlebot1:
           position:
             x_pose: [14.0, 15.0]
-            y_pose: [9.0, 11.0]
+            y_pose: [9.0, 9.5]
             z_pose: [0.04, 0.04]
           orientation:
             x: [0.0, 0.0]
@@ -606,7 +1024,7 @@
             x_pose: [14.0, 16.0]
             y_pose: [15.0, 16.0]
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [9.7, 12.4]
             y_pose: [13.0, 16.0]
@@ -626,7 +1044,7 @@
             x_pose: [10.3, 10.8]
             y_pose: [8.0, 10.0]
 
-        agent2:
+        turtlebot3:
           position:
             x_pose: [18.0, 20.4]
             y_pose: [15.0, 16.0]
@@ -653,7 +1071,7 @@
 
     
       env_b_north_crossing:
-        cleaning_robot:
+        turtlebot1:
           position:
             x_pose: [11.0, 15.0]
             y_pose: [9.0, 11.0]
@@ -669,7 +1087,7 @@
             x_pose: [14.0, 16.0]
             y_pose: [15.0, 16.0]
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [10.0, 11.0]
             y_pose: [8.0, 9.5]
@@ -694,7 +1112,7 @@
             x_pose: [9.3, 12.8]
             y_pose: [14.0, 16.0]
 
-        agent2:
+        turtlebot3:
           position:
             x_pose: [18.0, 20.4]
             y_pose: [15.0, 16.0]
@@ -721,7 +1139,7 @@
 
     
       env_b_south_room_cross:
-        cleaning_robot:
+        turtlebot1:
           position:
             x_pose: [10.0, 11.0]
             y_pose: [7.0, 8.5]
@@ -737,7 +1155,7 @@
             x_pose: [16.0, 18.0]
             y_pose: [10.0, 11.0]
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [9.5, 11.0]
             y_pose: [11.0, 11.5]
@@ -761,7 +1179,7 @@
           g2:
             x_pose: [13.0, 13.2]
             y_pose: [10.0, 11.0]
-        agent2:
+        turtlebot3:
           position:
             x_pose: [18.0, 20.4]
             y_pose: [15.0, 16.0]
@@ -792,7 +1210,7 @@
 
     
       env_b_north_room_cross:
-        cleaning_robot:
+        turtlebot1:
           position:
             x_pose: [10.0, 11.0]
             y_pose: [15.0, 15.5]
@@ -808,7 +1226,7 @@
             x_pose: [18.0, 18.0]
             y_pose: [13.0, 14.0]
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [9.5, 10.0]
             y_pose: [13.0, 13.5]
@@ -830,7 +1248,7 @@
             y_pose: [13.0, 13.4]
 
 
-        agent2:
+        turtlebot3:
           position:
             x_pose: [18.0, 20.4]
             y_pose: [15.0, 16.0]
@@ -857,7 +1275,7 @@
             y_pose: [8.0, 8.5]
 
       env_b_south:
-        cleaning_robot:
+        turtlebot1:
           position:
             x_pose: [13.7, 16.4]
             y_pose: [14.0, 16.0]
@@ -873,7 +1291,7 @@
             x_pose: [10.3, 16.8]
             y_pose: [8.0, 10.0]
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [9.7, 12.4]
             y_pose: [7.0, 10.0]
@@ -897,7 +1315,7 @@
             x_pose: [17.3, 18.8]
             y_pose: [14.0, 15.0]
 
-        agent2:
+        turtlebot3:
           position:
             x_pose: [15.7, 17.4]
             y_pose: [7.0, 10.0]
@@ -923,7 +1341,7 @@
             y_pose: [14.0, 16.0]
 
       env_g_left:
-        cleaning_robot:
+        turtlebot1:
           position:
             x_pose: [-25.5,-23.8]
             y_pose: [-19.6, -15.6]
@@ -939,7 +1357,7 @@
             x_pose: [-25.5,-18.8]
             y_pose: [-4.5, -1.8]
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [-19.5,-18.8]
             y_pose: [-2.5, -1.8]
@@ -959,7 +1377,7 @@
             x_pose: [-25.4,-25.0]
             y_pose: [-19.0, -15.0]
 
-        agent2:
+        turtlebot3:
           position:
             x_pose: [-18.5, -18.0]
             y_pose: [-19.6, -15.6]
@@ -985,7 +1403,7 @@
             y_pose: [-19.0, -15.0]
 
       env_g_right:
-        cleaning_robot:
+        turtlebot1:
           position:
             x_pose: [-19.7,-18.0]
             y_pose: [-19.6, -15.6]
@@ -1001,7 +1419,7 @@
             x_pose: [-25.5,-18.8]
             y_pose: [-4.5, -1.8]
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [-25.5,-18.8]
             y_pose: [-4.5, -4.0]
@@ -1021,7 +1439,7 @@
             x_pose: [-19.7,-19.4]
             y_pose: [-19.0, -15.0]
 
-        agent2:
+        turtlebot3:
           position:
             x_pose: [-24.5, -23.8]
             y_pose: [-19.6, -15.6]
@@ -1047,9 +1465,9 @@
             y_pose: [-19.0, -15.0]
 
       env_h_1:
-        cleaning_robot:
+        turtlebot1:
           position:
-            x_pose: [15.0,20.5]
+            x_pose: [17.0,20.5]
             y_pose: [-19.5,-19.0]
             z_pose: [0.04, 0.04]
           orientation:
@@ -1063,7 +1481,7 @@
             x_pose: [19.0,21.0]
             y_pose: [-14.0, -13.4]
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [23.0,27.0]
             y_pose: [-14.0, -13.4]
@@ -1083,7 +1501,7 @@
             x_pose: [17.5,17.5]
             y_pose: [-20.0, -19.0]
 
-        agent2:
+        turtlebot3:
           position:
             x_pose: [11.5, 12.5]
             y_pose: [-17.0, -16.0]
@@ -1105,7 +1523,7 @@
 
       
       env_h_2:
-        cleaning_robot:
+        turtlebot1:
           position:
             x_pose: [14.0,16.5]
             y_pose: [-14.0,-13.0]
@@ -1121,7 +1539,7 @@
             x_pose: [20.0,22.0]
             y_pose: [-14.0,-13.0]
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [23.0,27.0]
             y_pose: [-11.0, -10.0]
@@ -1141,7 +1559,7 @@
             x_pose: [17.5,17.5]
             y_pose: [-20.0, -19.0]
 
-        agent2:
+        turtlebot3:
           position:
             x_pose: [11.5, 12.5]
             y_pose: [-17.0, -16.0]
@@ -1166,7 +1584,7 @@
             y_pose: [-12.9, -12.9] 
       
       env_h_2_2:
-        cleaning_robot:
+        turtlebot1:
           position:
             x_pose: [18.0,22.5]
             y_pose: [-14.0,-13.0]
@@ -1182,7 +1600,7 @@
             x_pose: [13.0,14.0]
             y_pose: [-14.0,-13.0]
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [23.0,27.0]
             y_pose: [-11.0, -10.0]
@@ -1202,7 +1620,7 @@
             x_pose: [17.5,17.5]
             y_pose: [-20.0, -19.0]
 
-        agent2:
+        turtlebot3:
           position:
             x_pose: [11.5, 12.5]
             y_pose: [-17.0, -16.0]
@@ -1228,7 +1646,7 @@
 
 
       env_h_3:
-        cleaning_robot:
+        turtlebot1:
           position:
             x_pose: [14.0, 15.5]
             y_pose: [-10.0, -10.0]
@@ -1244,7 +1662,7 @@
             x_pose: [21.0, 21.5]
             y_pose: [-5.0, -1.0]
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [11.0,12.5]
             y_pose: [-5.0, -3.0]
@@ -1269,7 +1687,7 @@
             x_pose: [11.0,12.5]
             y_pose: [-1.5, -1.0]    
 
-        agent2:
+        turtlebot3:
           position:
             x_pose: [14.0,15.0]
             y_pose: [-14.0,-13.0]  
@@ -1291,7 +1709,7 @@
             y_pose: [-5.0, -1.0]         
 
       env_h_3_2:
-        cleaning_robot:
+        turtlebot1:
           position:
             x_pose: [20.0, 23.5]
             y_pose: [-11.0, -10.0]
@@ -1307,7 +1725,7 @@
             x_pose: [21.0, 21.5]
             y_pose: [-5.0, -1.0]
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [11.0,12.5]
             y_pose: [-5.0, -3.0]
@@ -1332,7 +1750,7 @@
             x_pose: [11.0,12.5]
             y_pose: [-1.5, -1.0]    
 
-        agent2:
+        turtlebot3:
           position:
             x_pose: [14.0,15.0]
             y_pose: [-14.0,-13.0]  
@@ -1354,7 +1772,7 @@
             y_pose: [-5.0, -1.0]  
 
       corridor_passing_north:
-        cleaning_robot:
+        turtlebot1:
           position:
             x_pose: [-5.0, -4.0]
             y_pose: [1.2, 1.7]
@@ -1370,7 +1788,7 @@
             x_pose: 0.38164
             y_pose: 0.88985
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [0.0, 2.0]
             y_pose: [1.2, 1.7]
@@ -1390,7 +1808,7 @@
           g1:
             x_pose: -4.514920
             y_pose: 1.7
-        agent2:
+        turtlebot3:
           position:
             x_pose: [4.5, 4.5]
             y_pose: [-1.2, -1.2]
@@ -1408,7 +1826,7 @@
             y_pose: -1.1
                     
       crossing_office:
-        cleaning_robot:
+        turtlebot1:
           position:
             x_pose: [-5.2, -4.8]
             y_pose: [-2.8, -2.5]
@@ -1424,7 +1842,7 @@
             x_pose: -2.4
             y_pose: -0.3
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [-5.0, -4.6]
             y_pose: [-0.3, -0.1]
@@ -1442,7 +1860,7 @@
             y_pose: -3.1
 
 
-        agent2:
+        turtlebot3:
           position:
             x_pose: [4.5, 4.5]
             y_pose: [-1.2, -1.2]
@@ -1461,7 +1879,7 @@
 
 
       crossing_office_inverse:
-        cleaning_robot:
+        turtlebot1:
           position:
 
             x_pose: [-5.0, -4.6]
@@ -1478,7 +1896,7 @@
             x_pose: -2.4
             y_pose: -3.1
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [-5.0, -4.6]
             y_pose: [-2.8, -2.5]
@@ -1494,7 +1912,7 @@
           g0:
             x_pose: -2.4
             y_pose: -0.1
-        agent2:
+        turtlebot3:
           position:
             x_pose: [4.5, 4.5]
             y_pose: [-1.2, -1.2]
@@ -1513,7 +1931,7 @@
 
 
       combination_crossing_passing:
-        cleaning_robot:
+        turtlebot1:
           position:
             x_pose: [-5.4, -5.2]
             y_pose: [1.2, 1.3]
@@ -1529,7 +1947,7 @@
             x_pose: 0.38164
             y_pose: 0.88985
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [-3.3, -3.3]
             y_pose: [-0.1, -0.0]
@@ -1545,7 +1963,7 @@
             x_pose: -4.0
             y_pose: 2.4
 
-        agent2:
+        turtlebot3:
           position:
             x_pose: [4.4, 4.5]
             y_pose: [-1.2, -1.1]
@@ -1563,7 +1981,7 @@
 
 
       overtaking:
-        cleaning_robot:
+        turtlebot1:
           position:
 
             x_pose: [-3.5, -3.5]
@@ -1580,7 +1998,7 @@
             x_pose: 4.4
             y_pose: 0.8
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [-4.2, -4.0]
             y_pose: [1.5, 1.7]
@@ -1604,7 +2022,7 @@
             y_pose: -2.8
 
 
-        agent2:
+        turtlebot3:
           position:
             x_pose: [4.5, 4.5]
             y_pose: [-1.2, -1.2]
@@ -1622,7 +2040,7 @@
             y_pose: -1.1
      
       coffee_goal_agent_to_end_office:
-        cleaning_robot:
+        turtlebot1:
           position:
             x_pose: [-0.0, 2.0]
             y_pose: [1.2, 1.7]
@@ -1638,7 +2056,7 @@
             x_pose: -4.738164
             y_pose: 0.88985
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [-5.2, -4.5]
             y_pose: [1.2, 1.2]
@@ -1669,7 +2087,7 @@
           g4:
             x_pose: 2.712463
             y_pose: 1.961474
-        agent2:
+        turtlebot3:
           position:
             x_pose: [4.5, 4.5]
             y_pose: [-1.2, -1.2]
@@ -1686,7 +2104,7 @@
             x_pose: 4.4
             y_pose: -1.1
       coffee4:
-        cleaning_robot:
+        turtlebot1:
           position:
             x_pose: [-0.0, 2.0]
             y_pose: [1.2, 1.7]
@@ -1702,7 +2120,7 @@
             x_pose: -4.738164
             y_pose: 0.88985
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [-5.2, -4.5]
             y_pose: [1.2, 2.3]
@@ -1734,7 +2152,7 @@
             x_pose: -3.631440
             y_pose: 2.030644
       
-        agent2:
+        turtlebot3:
           position:
             x_pose: [4.5, 4.5]
             y_pose: [-1.2, -1.2]
@@ -1751,7 +2169,7 @@
             x_pose: 4.4
             y_pose: -1.1          
       coffee5:
-        cleaning_robot:
+        turtlebot1:
           position:
             x_pose: [-2.0, 2.0]
             y_pose: [1.2, 1.7]
@@ -1767,7 +2185,7 @@
             x_pose: -4.738164
             y_pose: 0.88985
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [-5.2, -4.5]
             y_pose: [1.2, 2.3]
@@ -1799,7 +2217,7 @@
             x_pose: -4.659112
             y_pose: 2.613650
 
-        agent2:
+        turtlebot3:
           position:
             x_pose: [4.5, 4.5]
             y_pose: [-1.2, -1.2]
@@ -1817,7 +2235,7 @@
             y_pose: -1.1
 
       office3_begin_start:
-        cleaning_robot:
+        turtlebot1:
           position:
             x_pose: [1.8, 2.0]
             y_pose: [1.4, 1.7]
@@ -1833,7 +2251,7 @@
             x_pose: 3.5
             y_pose: -2.0
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [2.6, 3.5]
             y_pose: [-3.0, -0.7]
@@ -1873,7 +2291,7 @@
           g5:
             x_pose: 3.934180
             y_pose: -2.579366
-        agent2:
+        turtlebot3:
           position:
             x_pose: [4.5, 4.5]
             y_pose: [-1.2, -1.2]
@@ -1890,7 +2308,7 @@
             x_pose: 4.4
             y_pose: -1.1
       office3_middle_start:
-        cleaning_robot:
+        turtlebot1:
           position:
             x_pose: [-4.7, -2.0]
             y_pose: [1.2, 1.7]
@@ -1906,7 +2324,7 @@
             x_pose: 3.5
             y_pose: -2.0
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [3.0, 5.0]
             y_pose: [1.2, 1.7]
@@ -1946,7 +2364,7 @@
           g5:
             x_pose: 4.434843
             y_pose: -2.277351
-        agent2:
+        turtlebot3:
           position:
             x_pose: [4.5, 4.5]
             y_pose: [-1.2, -1.2]
@@ -1963,7 +2381,7 @@
             x_pose: 4.4
             y_pose: -1.1
       office3_end_start_robot_corridor:
-        cleaning_robot:
+        turtlebot1:
           position:
             x_pose: [-2.7, -2.0]
             y_pose: [1.2, 1.7]
@@ -1979,7 +2397,7 @@
             x_pose: 3.5
             y_pose: -2.0
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [-4.6, -4.0]
             y_pose: [1.2, 1.2]
@@ -2019,7 +2437,7 @@
           g5:
             x_pose: -5.217540
             y_pose: 2.058869
-        agent2:
+        turtlebot3:
           position:
             x_pose: [4.5, 4.5]
             y_pose: [-1.2, -1.2]
@@ -2036,7 +2454,7 @@
             x_pose: 4.4
             y_pose: -1.1
       office3_end_start_robot_office:
-        cleaning_robot:
+        turtlebot1:
           position:
             x_pose: [2.6, 5.0]
             y_pose: [-3.0, -0.7]
@@ -2052,7 +2470,7 @@
             x_pose: -2.0
             y_pose: 1.7
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [-2.0, -1.0]
             y_pose: [1.2, 1.2]
@@ -2093,7 +2511,7 @@
             x_pose: -5.217540
             y_pose: 2.058869
 
-        agent2:
+        turtlebot3:
           position:
             x_pose: [4.5, 4.5]
             y_pose: [-1.2, -1.2]
@@ -2110,7 +2528,7 @@
             x_pose: 4.4
             y_pose: -1.1
       office2_begin_start:
-        cleaning_robot:
+        turtlebot1:
           position:
             x_pose: [-4.0, 0.0]
             y_pose: [1.2, 1.7]
@@ -2126,7 +2544,7 @@
             x_pose: 0.0
             y_pose: -2.0
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [-1.4, 1.4]
             y_pose: [-3.0, -0.3]
@@ -2166,7 +2584,7 @@
           g5:
             x_pose: 0.828601
             y_pose: -1.995940
-        agent2:
+        turtlebot3:
           position:
             x_pose: [4.5, 4.5]
             y_pose: [-1.2, -1.2]
@@ -2184,7 +2602,7 @@
             y_pose: -1.1            
                     
       office2_middle_start:
-        cleaning_robot:
+        turtlebot1:
           position:
             x_pose: [-4.5, -4.0]
             y_pose: [1.2, 1.7]
@@ -2200,7 +2618,7 @@
             x_pose: 0.0
             y_pose: -2.0
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [0.7, 2.0]
             y_pose: [1.6, 1.7]
@@ -2241,7 +2659,7 @@
             x_pose: -0.099006
             y_pose: -1.787317
                 
-        agent2:
+        turtlebot3:
           position:
             x_pose: [4.5, 4.5]
             y_pose: [-1.2, -1.2]
@@ -2259,7 +2677,7 @@
             y_pose: -1.1
 
       office2_end_start_robot_corridor:
-        cleaning_robot:
+        turtlebot1:
           position:
             x_pose: [5.0,5.0]
             y_pose: [1.2, 1.7]
@@ -2275,7 +2693,7 @@
             x_pose: 0.0
             y_pose: -2.0
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [-3.6, -3.0]
             y_pose: [1.2, 1.2]
@@ -2316,7 +2734,7 @@
             x_pose: -5.280088
             y_pose: 2.517554
 
-        agent2:
+        turtlebot3:
           position:
             x_pose: [4.5, 4.5]
             y_pose: [-1.2, -1.2]
@@ -2335,7 +2753,7 @@
 
                               
       office2_end_start_robot_office:
-        cleaning_robot:
+        turtlebot1:
           position:
             x_pose: [-1.5,1.5]
             y_pose: [-3.0, -0.3]
@@ -2351,7 +2769,7 @@
             x_pose: -4.6
             y_pose: 2.0
 
-        agent1:
+        turtlebot2:
           position:
             x_pose: [-4.6, -4.0]
             y_pose: [1.2, 1.2]
@@ -2391,7 +2809,7 @@
           g5:
             x_pose: -5.280088
             y_pose: 2.517554
-        agent2:
+        turtlebot3:
           position:
             x_pose: [4.5, 4.5]
             y_pose: [-1.2, -1.2]

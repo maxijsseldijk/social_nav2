@@ -178,7 +178,9 @@ def launch_setup(context):
                 ],
                 output='screen',
             ),
-        ]
+        ],
+        condition=IfCondition(use_sim_time)
+
     )
 
     bringup_cmd = GroupAction(

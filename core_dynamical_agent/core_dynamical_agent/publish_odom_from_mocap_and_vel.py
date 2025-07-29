@@ -3,6 +3,7 @@ from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped, Twist, TwistWithCovariance
 from nav_msgs.msg import Odometry
 import time
+from rclpy.qos import QoSDurabilityPolicy, QoSReliabilityPolicy, QoSProfile
 
 
 class PublishOdomFromMocapAndVel(Node):
@@ -16,11 +17,14 @@ class PublishOdomFromMocapAndVel(Node):
                          automatically_declare_parameters_from_overrides=True)
         self.ns = self.get_namespace().strip('/')
         self.get_logger().info('PublishOdomFromMocapAndVel node has been initialized.')
-        self.create_subscription(Twist, 'cmd_vel', self.cmd_vel_callback, 10)
+        qos_profile_task = QoSProfile(depth=3)
+        qos_profile_task.durability = QoSDurabilityPolicy.VOLATILE
+        qos_profile_task.reliability = QoSReliabilityPolicy.BEST_EFFORT
         self.create_subscription(
-            PoseStamped, f'/mocap/{self.ns}/pose', self.mocap_pose_callback, 10)
-        self.odom_pub = self.create_publisher(Odometry, 'odometrytest', 10)
-
+            Twist, 'cmd_vel', self.cmd_vel_callback, qos_profile_task)
+        self.create_subscription(
+            PoseStamped, f'/mocap/{self.ns}/pose', self.mocap_pose_callback, qos_profile_task)
+        self.odom_pub = self.create_publisher(Odometry, 'odometry', 10)
         self.latest_pose = None
         self.latest_pose_time = None
         self.latest_twist = None
@@ -48,8 +52,8 @@ class PublishOdomFromMocapAndVel(Node):
 
             odom_msg = Odometry()
             odom_msg.header.stamp = now.to_msg()
-            odom_msg.header.frame_id = 'odom'
-            odom_msg.child_frame_id = 'base_link'
+            odom_msg.header.frame_id = f'{self.ns}/odom'
+            odom_msg.child_frame_id = f'{self.ns}/base_link'
             odom_msg.pose.pose = self.latest_pose
             odom_msg.twist = self.latest_twist
             self.odom_pub.publish(odom_msg)

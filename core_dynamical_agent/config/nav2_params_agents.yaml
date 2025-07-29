@@ -117,7 +117,7 @@ controller_server:
     controller_frequency: 10.0
     use_realtime_priority: true
     min_x_velocity_threshold: 0.001
-    min_y_velocity_threshold: 0.5
+    min_y_velocity_threshold: 0.001
     action_server_result_timeout: 10000.0
     min_theta_velocity_threshold: 0.001
     bond_heartbeat_period: 0.1
@@ -172,7 +172,7 @@ controller_server:
       short_circuit_trajectory_evaluation: True
       stateful: True
       critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
-      BaseObstacle.scale: 0.5
+      BaseObstacle.scale: 0.08
       PathAlign.scale: 20.0
       PathAlign.forward_point_distance: 0.1
       GoalAlign.scale: 24.0

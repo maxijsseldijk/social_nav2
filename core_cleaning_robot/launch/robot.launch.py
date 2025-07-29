@@ -174,7 +174,9 @@ def launch_setup(context):
                 ],
                 output='screen',
             ),
-        ]
+        ],
+        condition=IfCondition(use_sim_time)
+
     )
     create_people_publisher = Node(
         package='core_cleaning_robot',
@@ -239,6 +241,14 @@ def launch_setup(context):
         },
         condition=IfCondition(use_slam)
     )
+    publish_odom_node = Node(
+        package='core_dynamical_agent',
+        executable='publish_odom_from_mocap_and_vel',
+        name='publish_odom_from_mocap_and_vel',
+        namespace=namespace,
+        output='screen',
+        condition=UnlessCondition(use_sim_time),
+    )
 
     return [
         create_static_transform,
@@ -246,6 +256,7 @@ def launch_setup(context):
         robot_state_publisher,
         robot_joint_state_publisher,
         create_people_publisher,
+        publish_odom_node,
         ros_gz_bridge_node,
         slam_cmd,
         bringup_cmd,
