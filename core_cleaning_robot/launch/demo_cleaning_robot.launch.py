@@ -183,6 +183,8 @@ def generate_launch_description():
         namespace=namespace,
         arguments=[
             ['/world/', world, '/control@ros_gz_interfaces/srv/ControlWorld']],
+        condition=IfCondition(use_sim_time)
+
     )
 
     set_model_pose_service_bridge = Node(
@@ -193,6 +195,8 @@ def generate_launch_description():
         arguments=[
             ['/world/', world,
              '/set_pose@ros_gz_interfaces/srv/SetEntityPose@gz.msgs.Pose@gz.msgs.Boolean']],
+        condition=IfCondition(use_sim_time)
+
     )
 
     gazebo_launch = GroupAction(
@@ -210,6 +214,8 @@ def generate_launch_description():
             'namespace': namespace,
             'world': world,
         },
+        condition=IfCondition(use_sim_time)
+
     )
 
     office_world_launch = GroupAction(
@@ -227,6 +233,7 @@ def generate_launch_description():
             'namespace': namespace,
             'world': world,
         },
+        condition=IfCondition(use_sim_time)
 
     )
 

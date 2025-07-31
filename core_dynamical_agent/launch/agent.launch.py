@@ -182,7 +182,36 @@ def launch_setup(context):
         condition=IfCondition(use_sim_time)
 
     )
+    create_static_transform_mocap = GroupAction(
+        actions=[
+            Node(
+                package='tf2_ros',
+                executable='static_transform_publisher',
+                name='world_to_map',
+                arguments=[
+                    '--x', '0', '--y', '0', '--z', '0',
+                    '--roll', '0', '--pitch', '0', '--yaw', '0',
+                    '--frame-id', 'mocap',
+                    '--child-frame-id', f'{namespace_value}/fake_map'
+                ],
+                output='screen',
+            ),
+            Node(
+                package='tf2_ros',
+                executable='static_transform_publisher',
+                name='static_transform_publisher',
+                arguments=[
+                    '--x', '0', '--y', '0', '--z', '0',
+                    '--roll', '0', '--pitch', '0', '--yaw', '0',
+                    '--frame-id', f'{namespace_value}/fake_map',
+                    '--child-frame-id', f'{namespace_value}/fake_odom'
+                ],
+                output='screen',
+            ),
+        ],
+        condition=UnlessCondition(use_sim_time)
 
+    )
     bringup_cmd = GroupAction(
         actions=[
             IncludeLaunchDescription(
@@ -218,6 +247,7 @@ def launch_setup(context):
     )
     return [
         create_static_transform,
+        create_static_transform_mocap,
         ros_gz_sim_create_node,
         robot_state_publisher,
         ros_gz_bridge_node,

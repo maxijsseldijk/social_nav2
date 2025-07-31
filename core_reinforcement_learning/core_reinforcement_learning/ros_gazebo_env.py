@@ -550,11 +550,6 @@ class BaseClassEnv(gym.Env, ABC):
         else:
             current_path_distance = self._get_safe_data('last_plan_length')
 
-        if (self.last_distance_to_goal == current_path_distance and
-                self.last_distance_reward is not None):
-            # No update on topic
-            return self.last_distance_reward
-
         traversed_path = self.last_distance_to_goal - current_path_distance
         self.last_distance_to_goal = current_path_distance
         normalized_path = (

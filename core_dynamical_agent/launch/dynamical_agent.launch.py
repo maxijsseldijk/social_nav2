@@ -146,6 +146,7 @@ def generate_launch_description():
         executable='publish_odom_from_mocap_and_vel',
         name='publish_odom_from_mocap_and_vel',
         namespace=namespace,
+        parameters=[{'motion_model': 'omnidirectional'}],
         output='screen',
         condition=UnlessCondition(use_sim_time),
     )

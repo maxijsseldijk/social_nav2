@@ -47,10 +47,8 @@ def launch_func(context):
     lifecycle_nodes = ['map_server',
                        'controller_server',
                        'planner_server',
-                       'behavior_server',
                        'bt_navigator',
                        'waypoint_follower',
-                       'velocity_smoother',
                        ]
 
     remappings = [('tf', '/tf'),
@@ -107,7 +105,7 @@ def launch_func(context):
                 respawn_delay=2.0,
                 parameters=[configured_nav2_params],
                 arguments=['--ros-args', '--log-level', log_level],
-                remappings=[('cmd_vel', 'cmd_vel_nav')],
+                remappings=[('cmd_vel', 'cmd_vel_ctrl')],
             ),
             Node(
                 package='nav2_planner',
@@ -118,17 +116,6 @@ def launch_func(context):
                 respawn_delay=2.0,
                 parameters=[configured_nav2_params],
                 arguments=['--ros-args', '--log-level', log_level],
-            ),
-            Node(
-                package='nav2_behaviors',
-                executable='behavior_server',
-                name='behavior_server',
-                output='screen',
-                respawn=use_respawn,
-                respawn_delay=2.0,
-                parameters=[configured_nav2_params],
-                arguments=['--ros-args', '--log-level', log_level],
-                remappings=remappings + [('cmd_vel', 'cmd_vel_ctrl')],
             ),
             Node(
                 package='nav2_waypoint_follower',
@@ -161,17 +148,7 @@ def launch_func(context):
                 remappings=[(f'{namespace_value}/amcl_pose',
                              f'{namespace_value}/pose')],
             ),
-            Node(
-                package='nav2_velocity_smoother',
-                executable='velocity_smoother',
-                name='velocity_smoother',
-                output='screen',
-                respawn=use_respawn,
-                respawn_delay=2.0,
-                parameters=[configured_nav2_params],
-                arguments=['--ros-args', '--log-level', log_level],
-                remappings=remappings +
-                        [('cmd_vel', 'cmd_vel_nav'), ('cmd_vel_smoothed', 'cmd_vel_ctrl')]),
+
             Node(
                 package='nav2_lifecycle_manager',
                 executable='lifecycle_manager',
