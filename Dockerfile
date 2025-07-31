@@ -4,8 +4,8 @@ FROM osrf/ros:${ROS_DISTRO}-desktop-full AS ros-base
 
 SHELL [ "/bin/bash" , "-c" ]
 
-RUN rm /etc/apt/sources.list.d/ros2-latest.list \
-  && rm /usr/share/keyrings/ros2-latest-archive-keyring.gpg
+RUN rm /etc/apt/sources.list.d/ros2-latest.list || true\
+  && rm /usr/share/keyrings/ros2-latest-archive-keyring.gpg || true
 
 RUN apt-get update \
   && apt-get install -y ca-certificates curl
@@ -28,6 +28,8 @@ RUN apt-get update && apt-get install -y \
     xterm \
     ros-dev-tools \
     lsb-release \
+    iputils-ping \ 
+    sshpass \ 
     sudo \
     clang-format \
     && rm -rf /var/lib/apt/lists/* 
@@ -96,4 +98,5 @@ FROM deps-install AS final
 
 RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc \  
     && echo "source /docker_ws/install/setup.bash" >> ~/.bashrc \
-    && echo "source /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash " >> ~/.bashrc
+    && echo "source /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash " >> ~/.bashrc \
+    && echo "export ROS_DOMAIN_ID=5" >> ~/.bashrc \
