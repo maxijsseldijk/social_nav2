@@ -42,7 +42,10 @@ SAC*/
 *.exe
 .DS_Store
 Thumbs.db
-
+.bash_aliases
+setup_aliases.sh
+*.gv
+metrics.txt
 # LINTERS
 .clang-format
 uncrustify.cfg
