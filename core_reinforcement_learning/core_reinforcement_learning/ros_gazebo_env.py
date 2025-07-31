@@ -1662,7 +1662,6 @@ class GazeboEnv(BaseClassEnv):
 
         """
         info = {}
-
         if self.rl_action_output == 'diff_drive':
             self._publish_diff_drive_action(action)
             future_collision = False
@@ -1877,10 +1876,10 @@ class GazeboEnv(BaseClassEnv):
 
         self.node.get_logger().error("Reset Requested")
         self.reset_gazebo.reset_simulation(self.task_list[self.task_number])
-        self.pause_motion_publisher.publish(BoolMsg(data=True))
+        # self.pause_motion_publisher.publish(BoolMsg(data=True))
         # TODO implement function that checks condition of environment instead of a fixed time
-        time.sleep(2.5)
-        self.pause_motion_publisher.publish(BoolMsg(data=False))
+        # time.sleep(2.5)
+        # self.pause_motion_publisher.publish(BoolMsg(data=False))
 
         self.pause_node.change_pause_simulation(pause=True)
         info = {}

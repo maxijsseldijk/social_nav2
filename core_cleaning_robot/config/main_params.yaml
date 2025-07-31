@@ -25,7 +25,7 @@
       num_square_zone_points: 16
       square_half_length: 3.0
       mid_points_offset: 0.2 
-      append_future_agent_points: True #Add agent linear extrapolated points to lidar data.
+      append_future_agent_points: False #Add agent linear extrapolated points to lidar data.
       future_predict_time: 1.0 #s
       num_future_steps: 4                 
 
@@ -39,7 +39,7 @@
       time_step_length: 0.3                     #The length of a timestep in seconds  
       reward_averaging: False                    #Determines if the reward should be averaged over the number of timesteps. Note can cause small error in pause time.
       reward_samples_per_timestep: 5            #The number of samples to use for the reward per timestep if reward averaging is used
-      collision_footprint_factor: 1.1           #Parameter used to multiply the robot footprint to reset the simulation before a real collision occurs.
+      collision_footprint_factor: 0.7           #Parameter used to multiply the robot footprint to reset the simulation before a real collision occurs.
       footprint_scale: 0.8                      #The scale of the footprint of the robot compared to the one used by NAV2. This is used for determining if there is a future collision.
       grid_size: 0.1                            #The size of the grid to use for discrete plan actions
       max_trial_timesteps: 150
@@ -87,7 +87,7 @@
         epsilon: 0.005                          #Parameter used to preffer overtaking on the right side
  
       ### EVALUATION PARAMETERS ###
-      sim_name: 'NO_PRE_PLAY_FIXED_ENV_SDE_140k'             #The name of the simulation for plotting purposes
+      sim_name: 'Eval_DWB_CORRIDOR_Social'             #The name of the simulation for plotting purposes
       num_eval_per_scenario: 2                #The number of evaluations to perform per scenario
       load_results_only_mode: False            #Determines if the super evaluation mode should be used. This will simply generate plots from data in the result file
 
@@ -100,7 +100,7 @@
       reset_on_exit_interaction_range: False   #If set to true the simulation is reset when the robot leaves the interaction range. Else the NAV2 planner is used to navigate towards the goal.
 
       ### EXPERT DEMONSTRATION PARAMETERS ###
-      use_expert_demonstrations: False          #Determines if the expert demonstrations should be used for training the RL algorithm. If train is false the expert policy is used for evaluation.
+      use_expert_demonstrations: True          #Determines if the expert demonstrations should be used for training the RL algorithm. If train is false the expert policy is used for evaluation.
 
       imitation_learning:
         expert_class: 'Nav2Policy'      #The class of the expert demonstrations either Nav2Policy if the DWB planner is used or SocialForcePolicy if the social force model is used
@@ -114,11 +114,11 @@
         
       ### RL ALGORITHM PARAMETERS ###       
       SAC:
-        save_model_path: "NO_PRE_PLAY_FIXED_ENV_SDE_V2"
-        load_model_path: "NO_PRE_PLAY_FIXED_ENV_SDE/model_140000"                
+        save_model_path: "PRE_PLAY_FIXED_ENV_SDE_V2_2_EXPLORE_256"
+        load_model_path: "NO_PRE_PLAY_FIXED_ENV_SDE_V2/model_120000"                
         load_model: False                                          
 
-        load_replay_buffer_path: "Expert_SFM_8_T_0_3_PLAYGROUND_0_9_lookahead_SDE_extra_envs/replay_buffer_60000"
+        load_replay_buffer_path: "NO_PRE_PLAY_FIXED_ENV_SDE_V2/replay_buffer_120000"
         load_replay_buffer: False
 
         # SAC SB3 related parameters
@@ -190,42 +190,42 @@
         state_nodes: ['lidar', 'agents', 'plan','nav2_input' ]
         utility_nodes: ['costmap','footprint', 'robot_odom', 'agents_global_frame']
         costmap:
-          topic: 'turtlebot1/global_costmap/costmap'
+          topic: 'turtlebot3/global_costmap/costmap'
           type: 'OccupancyGrid'
           callback: 'costmap_callback'
           
         footprint:
-          topic: 'turtlebot1/local_costmap/published_footprint'
+          topic: 'turtlebot3/local_costmap/published_footprint'
           type: 'PolygonStamped'
           callback: 'footprint_callback'
 
         robot_odom:
-          topic: 'turtlebot1/odometry'
+          topic: 'turtlebot3/odometry'
           type: 'Odometry'
           callback: 'odometry_callback'
 
         nav2_input:
-          topic: 'turtlebot1/cmd_vel_nav'
+          topic: 'turtlebot3/cmd_vel_ctrl'
           type: 'Twist'
           callback: 'nav2_input_callback'
 
         plan:
-          topic: 'turtlebot1/lookahead_pose' #'resampled_plan_local'
+          topic: 'turtlebot3/lookahead_pose' #'resampled_plan_local'
           type: 'PathWithLength'
           callback: 'plan_with_length_callback'
 
         global_plan:
-          topic: 'turtlebot1/pure_pursuit_plan'
+          topic: 'turtlebot3/pure_pursuit_plan'
           type: 'Path'
           callback: 'global_plan_callback'
 
         lidar:
-          topic: 'turtlebot1/critical_points'
+          topic: 'turtlebot3/critical_points'
           type: 'PointArray'
           callback: 'lidar_point_array_callback'
 
         lidar_raw:
-          topic: 'turtlebot1/scan'
+          topic: 'turtlebot3/scan'
           type: 'LaserScan'
           callback: 'lidar_raw_callback'
 
@@ -240,7 +240,7 @@
           callback: 'agents_callback_global'
         
         sfm_control_point:
-          topic: 'turtlebot2/robot_local_plan'
+          topic: 'turtlebot3/robot_local_plan'
           type: 'Path'
           callback: 'sfm_control_point_callback'
 
@@ -258,11 +258,11 @@
     # the reading of the yaml parameters with the BT.
     use_namespace: False
     seed: 1                                   #The seed for the random number generator
-    use_sim_time: True
+    use_sim_time: False
     world: 'playground'
     log_level: 'error'
-    use_teleop: True
-    map_yaml_file: 'maps/playground/playground_map'
+    use_teleop: False
+    map_yaml_file: 'maps/exp/exp_4'
 
 
     #The utility_nodes options are 'publish_agents_velocity','construct_safe_corridor'
@@ -325,14 +325,14 @@
     # robot is used in the utilities. For multi-robot cases the framework needs to be be 
     # extended.
     robot_names: 
-      - "turtlebot1"
+      - "turtlebot3"
     robot_frame: "base_link"
     
      # The names of other entities in the environment. The names can be anything however remember
      # to create an xml file with navigate_through_poses_<agent_name>.xml for each agent.
-    agent_names: # ""
-     - "turtlebot2"
-     - "turtlebot3"
+    agent_names: #""
+     - "person1"
+     #- "turtlebot2"
      #- "turtlebot3"
      #- "agent4"
 
@@ -359,25 +359,20 @@
       # If you would like to both train and evaluate an environment add two
       # entries to task_list one you add to tasks_list_eval.
       task_list: [ 
-        'env_a_north', 'env_a_south',
-        'env_b_north', 'env_b_north_crossing', 'env_b_south', 'env_b_south_room_cross', 'env_b_north_room_cross',
-        'env_f', 'env_f_passing', 'open1_circle_complex', 'open1_circle_four_way_left', 'open1_circle_four_way_right',
-        'env_h_1','env_h_3', 'env_h_3_2'
+        'exp_1','exp_2','exp_3','exp_4','exp_5','exp_6','exp_7','exp_8','exp_8'
       ]
-      task_list_eval: [ 12, 13, 14]  # Indices of env_h_1, env_h_2, env_h_2_2, env_h_3, env_h_3_2
+      task_list_eval: [8]  # Indices of env_h_1, env_h_2, env_h_2_2, env_h_3, env_h_3_2
 
       # The taskgenerator also allows for custom parameters for each task.
       param_change_list:
         corridor_passing_south: 
           #FollowPath.social_weight: 0.0
           FollowPath.distance_weight: 1.0
-
-          
       exp_1:
         turtlebot1:
           position:
-            x_pose: [-1.9, -1.9]  # Start on right side of circle (3+5=8, radius=5)
-            y_pose: [2.5,2.5]  # Center y=1
+            x_pose: [-1., -1.]  # Start on right side of circle (3+5=8, radius=5)
+            y_pose: [-2.0,-2.0]  # Center y=1
             z_pose: [0.04, 0.04]
           orientation:
             x: [0.0, 0.0]
@@ -390,7 +385,7 @@
             x_pose: [-4.0, -4.0]  # Goal on opposite side (3-5=-2, radius=5)
             y_pose: [4.0, 4.0]
 
-        turtlebot2:
+        person1:
           position:
             x_pose: [2.8, 3.2]  # Start on top of circle
             y_pose: [5.8, 6.0]  # Center y=1, radius=5, so 1+5=6
@@ -408,8 +403,8 @@
 
         turtlebot3:
           position:
-            x_pose: [-1.8, -1.6]  # Start on left side of circle
-            y_pose: [0.8, 1.2]
+            x_pose: [-1., -1.]  # Start on right side of circle (3+5=8, radius=5)
+            y_pose: [-2.0,-2.0]  # Center y=1
             z_pose: 0.01
           orientation:
             x: 0.0
@@ -418,15 +413,20 @@
             w: 1.0
           goals:
             - "g0"
-          g0:
-            x_pose: [7.8, 8.0]  # Goal on right side of circle
-            y_pose: [0.1, 1.9]
+            #- "g1"
 
-      open1_circle_cross:
-        turtlebot1:
+          g0:
+            x_pose: [2., 2.]  # Start on right side of circle (3+5=8, radius=5)
+            y_pose: [-1.0,-1.0]  # Center y=1
+          g1:
+            x_pose: [-3., -3.]  # Start on right side of circle (3+5=8, radius=5)
+            y_pose: [-2.0, -2.0]  # Center y=1
+
+      exp_2:
+        turtlebot3:
           position:
-            x_pose: [5.8, 6.0]  # Start on right side of circle (3+5=8, radius=5)
-            y_pose: [0.8, 1.2]  # Center y=1
+            x_pose: [-1., -1.]  # Start on right side of circle (3+5=8, radius=5)
+            y_pose: [-2.0,-2.0]  # Center y=1
             z_pose: [0.04, 0.04]
           orientation:
             x: [0.0, 0.0]
@@ -434,31 +434,36 @@
             z: [0.9, 1.0]  # Facing toward circle center
             w: [0.1, 0.2]
           goals:
-            - "g0"
+            - "g1"
           g0:
-            x_pose: [1.3, 1.6]  # Goal on opposite side (3-5=-2, radius=5)
-            y_pose: [0.8, 1.2]
+            x_pose: [-3.6, -3.6] 
+            y_pose: [-1.6, -1.6]
+          g1:
+            x_pose: [-3.88, -3.88]
+            y_pose: [1.22, 1.22]
+          g2:
+            x_pose: [0.84, 0.84]
+            y_pose: [0.9, 0.9]
+          g3:
+            x_pose: [1.22, 1.22]
+            y_pose: [-1.0, -1.0]
+          g4:
+            x_pose: [-1.55, -1.55]
+            y_pose: [-2.27, -2.27]
+          g5:
+            x_pose: [-1.82, -1.82]
+            y_pose: [-0.75, -0.75]
+          g6:
+            x_pose: [-2.1, -2.1]
+            y_pose: [1.0, 1.0]
+          g7:
+            x_pose: [-4.1, -4.1]
+            y_pose: [2.8, 2.8]
 
-        turtlebot2:
+        person1:
           position:
-            x_pose: [2.8, 3.2]  # Start on top of circle
-            y_pose: [5.8, 6.0]  # Center y=1, radius=5, so 1+5=6
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: -0.7
-            w: 0.7
-          goals:
-            - "g0"
-          g0:
-            x_pose: [2.4, 3.7]  # Goal on bottom of circle
-            y_pose: [-3.8, -3.6]  # Center y=1, radius=5, so 1-5=-4
-
-        turtlebot3:
-          position:
-            x_pose: [-1.8, -1.6]  # Start on left side of circle
-            y_pose: [0.8, 1.2]
+            x_pose: [1., 1.]  # Start on left side of circle (3-5=-2, radius=5)
+            y_pose: [1.0, 1.0]  # Center y=1
             z_pose: 0.01
           orientation:
             x: 0.0
@@ -467,223 +472,20 @@
             w: 1.0
           goals:
             - "g0"
-          g0:
-            x_pose: [7.8, 8.0]  # Goal on right side of circle
-            y_pose: [0.1, 1.9]
+            #- "g1"
 
-      # Larger circular crossing with multiple waypoints - centered at (3,1)
-      open1_circle_complex:
-        turtlebot1:
-          position:
-            x_pose: [5.5, 5.8]  # Start on far right (radius ~4.5-4.8)
-            y_pose: [0.8, 1.2]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [0.9, 1.0]  # Facing left toward center
-            w: [0.0, 0.1]
-          goals:
-            - "g0"
           g0:
-            x_pose: [0.5, 0.8]  # Intermediate goal - center-left
-            y_pose: [0.8, 1.2]
- 
-
-        turtlebot2:
-          position:
-            x_pose: [5.5, 5.8]  # Start on top-right of circle
-            y_pose: [4.5, 4.8]  # Above center (1+3.5-3.8)
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: -0.9
-            w: 0.4
-          goals:
-            - "g0"
-            - "g1"
-          g0:
-            x_pose: [2.8, 3.2]  # Cross through center
-            y_pose: [0.8, 1.2]
+            x_pose: [2., 2.]  # Start on right side of circle (3+5=8, radius=5)
+            y_pose: [-1.0,-1.0]  # Center y=1
           g1:
-            x_pose: [2.8, 3.2]  # End at bottom
-            y_pose: [-2.5, -2.2]  # Below center (1-3.5)
+            x_pose: [-3., -3.]  # Start on right side of circle (3+5=8, radius=5)
+            y_pose: [-2.0, -2.0]  # Center y=1
 
+      exp_3:
         turtlebot3:
           position:
-            x_pose: [0.0, 0.3]  # Start on left side
-            y_pose: [3.5, 3.8]  # Above center
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: -0.4
-            w: 0.9
-          goals:
-            - "g0"
-            - "g1"
-          g0:
-            x_pose: [2.8, 3.2]  # Cross through center
-            y_pose: [0.8, 1.2]
-          g1:
-            x_pose: [6.5, 6.8]  # End on far right
-            y_pose: [-1.2, -0.8]
-
-      # Four-way circular crossing - maximum complexity, centered at (3,1)
-      open1_circle_four_way:
-        turtlebot1:
-          position:
-            x_pose: [2.8, 3.2]  # Start at bottom of circle (center x)
-            y_pose: [-1.8, -1.6]  # Bottom (1-4.8)
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [1.0, 1.0]
-            w: [1.0, 1.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: [2.8, 3.2]  # Goal at top of circle
-            y_pose: [1.8, 2.0]  # Top (1+4.8)
-
-        turtlebot2:
-          position:
-            x_pose: [7.8, 8.7]  # Start on right side (3+5)
-            y_pose: [0.8, 1.2]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0  # Facing left (west)
-            w: 0.0
-          goals:
-            - "g0"
-          g0:
-            x_pose: [-1.8, -1.6]  # Goal on left side (3-5)
-            y_pose: [0.8, 1.2]
-
-        turtlebot3:
-          position:
-            x_pose: [-1.8, -1.6]  # Start on left side (3-5)
-            y_pose: [0.8, 1.2]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 0.0  # Facing right (east)
-            w: 1.0
-          goals:
-            - "g0"
-          g0:
-            x_pose: [-1.8, -1.6]  # Goal on right side (3+5)
-            y_pose: [0.8, 1.2]
-      # Four-way circular crossing - Left
-      open1_circle_four_way_left:
-        turtlebot1:
-          position:
-            x_pose: [2.8, 3.2]  # Start at bottom of circle (center x)
-            y_pose: [-1.6, -1.4]  # Bottom (1-4.8)
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [1.0, 1.0]
-            w: [1.0, 1.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: [2.8, 3.2]  # Goal at top of circle
-            y_pose: [1.8, 2.0]  # Top (1+4.8)
-
-        turtlebot2:
-          position:
-            x_pose: [7.8, 8.7]  # Start on right side (3+5)
-            y_pose: [0.8, 1.2]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0  # Facing left (west)
-            w: 0.0
-          goals:
-            - "g0"
-          g0:
-            x_pose: [-1.8, -1.6]  # Goal on left side (3-5)
-            y_pose: [0.8, 1.2]
-
-        turtlebot3:
-          position:
-            x_pose: [-1.8, -1.6]  # Start on left side (3-5)
-            y_pose: [0.8, 1.2]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 0.0  # Facing right (east)
-            w: 1.0
-          goals:
-            - "g0"
-          g0:
-            x_pose: [-1.8, -1.6]  # Goal on right side (3+5)
-            y_pose: [0.8, 1.2]
-      # Four-way circular crossing - maximum complexity, centered at (3,1)
-      open1_circle_four_way_right:
-        turtlebot1:
-          position:
-            x_pose: [2.8, 3.2]  # Start at bottom of circle (center x)
-            y_pose: [-1.8, -1.6]  # Bottom (1-4.8)
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [1.0, 1.0]
-            w: [1.0, 1.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: [2.8, 3.2]  # Goal at top of circle
-            y_pose: [1.8, 2.0]  # Top (1+4.8)
-
-        turtlebot2:
-          position:
-            x_pose: [7.8, 8.7]  # Start on right side (3+5)
-            y_pose: [0.8, 1.2]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0  # Facing left (west)
-            w: 0.0
-          goals:
-            - "g0"
-          g0:
-            x_pose: [7.8, 8.7]  # Start on right side (3+5)
-            y_pose: [0.8, 1.2]
-
-        turtlebot3:
-          position:
-            x_pose: [-1.8, -1.6]  # Start on left side (3-5)
-            y_pose: [0.8, 1.2]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 0.0  # Facing right (east)
-            w: 1.0
-          goals:
-            - "g0"
-          g0:
-            x_pose: [7.8, 8.7]  # Start on right side (3+5)
-            y_pose: [0.8, 1.2]
-
-      # Diagonal crossing circle - agents cross diagonally, centered at (3,1)
-      open1_circle_diagonal:
-        turtlebot1:
-          position:
-            x_pose: [6.3, 6.5]  # Start on northeast (3+3.3, 1+2.5)
-            y_pose: [1.1, 2.3]
+            x_pose: [-1., -1.]  # Start on right side of circle (3+5=8, radius=5)
+            y_pose: [-2.0,-2.0]  # Center y=1
             z_pose: [0.04, 0.04]
           orientation:
             x: [0.0, 0.0]
@@ -691,1439 +493,36 @@
             z: [0.9, 1.0]  # Facing toward circle center
             w: [0.1, 0.2]
           goals:
-            - "g0"
-          g0:
-            x_pose: [3.1, 3.3]  
-            y_pose: [2.5, 2.6]
-
-        turtlebot2:
-          position:
-            x_pose: [-0.3, -0.1]  # Start on southwest
-            y_pose: [-1.5, -1.3]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 0.7  # Facing northeast
-            w: 0.7
-          goals:
-            - "g0"
-          g0:
-            x_pose: [6.3, 6.5]  # Goal on northeast
-            y_pose: [3.5, 3.7]
-
-        turtlebot3:
-          position:
-            x_pose: [-0.1, 0.1]  # Start on northwest (3-3.1, 1+2.8)
-            y_pose: [3.8, 4.0]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: -0.7  # Facing southeast
-            w: 0.7
-          goals:
-            - "g0"
-          g0:
-            x_pose: [6.1, 6.3]  # Goal on southeast (3+3.1, 1-2.8)
-            y_pose: [-1.8, -1.6]
-
-      # Robot moves in figure-8 while agents cross linearly, centered at (3,1)
-      open1_circle_figure_eight:
-        turtlebot1:
-          position:
-            x_pose: [2.8, 3.2]  # Start at center-bottom
-            y_pose: [-1.2, -1.0]  # Below center
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [0.0, 0.0]
-            w: [1.0, 1.0]
-          goals:
-            - "g0"
-            - "g1"
             - "g2"
-            - "g3"
           g0:
-            x_pose: [5.8, 6.0]  # Right loop (3+3)
-            y_pose: [0.8, 1.2]
+            x_pose: [-3.6, -3.6] 
+            y_pose: [-1.6, -1.6]
           g1:
-            x_pose: [2.8, 3.2]  # Back to center
-            y_pose: [0.8, 1.2]
+            x_pose: [-3.88, -3.88]
+            y_pose: [1.22, 1.22]
           g2:
-            x_pose: [0.0, 0.2]  # Left loop (3-3)
-            y_pose: [0.8, 1.2]
+            x_pose: [0.84, 0.84]
+            y_pose: [0.9, 0.9]
           g3:
-            x_pose: [2.8, 3.2]  # Return to center
-            y_pose: [-1.2, -1.0]
-
-        turtlebot2:
-          position:
-            x_pose: [-1.5, -1.3]  # Start far left (3-4.5)
-            y_pose: [0.8, 1.2]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 0.0
-            w: 1.0
-          goals:
-            - "g0"
-          g0:
-            x_pose: [7.5, 7.7]  # Goal far right (3+4.5)
-            y_pose: [0.8, 1.2]
-
-        turtlebot3:
-          position:
-            x_pose: [2.8, 3.2]  # Start top-center
-            y_pose: [4.5, 4.7]  # Above center (1+3.5)
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: -1.0
-            w: 0.0
-          goals:
-            - "g0"
-          g0:
-            x_pose: [2.8, 3.2]  # Goal bottom-center
-            y_pose: [-2.5, -2.3]  # Below center (1-3.5)
-
-      env_a_north:
-        turtlebot1:
-          position:
-            x_pose: [-22.0, -21.2]
-            y_pose: [0.8, 4.8]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [1.0, 1.0]
-            w: [1.0, 1.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: [-22.0, -20.9]
-            y_pose: [7.5, 9.8]
-
-        turtlebot2:
-          position:
-            x_pose: [-22.0, -21.8]
-            y_pose: [9.3, 10.7]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: -1.0
-            w: 1.0
-          goals:
-            - "g0"
-            - "g1"
-          g0:
-            x_pose: [-22.0, -21.8]
-            y_pose: [8.8, 9.3]
-          g1:
-            x_pose: [-22.0, -21.8]
-            y_pose: [0.8, 4.3]
-
-        turtlebot3:
-          position:
-            x_pose: [-22.0, -21.8]
-            y_pose: [9.3, 14.7]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: -1.0
-            w: 1.0
-          goals:
-            - "g0"
-            - "g1"
-          g0:
-            x_pose: [-22.0, -21.8]
-            y_pose: [8.8, 9.3]
-          g1:
-            x_pose: [-22.0, -21.8]
-            y_pose: [2.8, 6.3]
-            
-      env_a_south:
-        turtlebot1:
-          position:
-            x_pose: [-22.0, -21.2]
-            y_pose: [9.3, 10.7]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [-1.0, -1.0]
-            w: [1.0, 1.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: [-22.0, -20.9]
-            y_pose: [5.8, 6.3]
-
-        turtlebot2:
-          position:
-            x_pose: [-21.0, -20.9]
-            y_pose: [1.3, 5.7]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-            - "g1"
-          g0:
-            x_pose: [-21.1, -20.9]
-            y_pose: [5.8, 6.3]
-          g1:
-            x_pose: [-21.1, -20.9]
-            y_pose: [13.8, 15.3]
-
-        turtlebot3:
-          position:
-            x_pose: [-21.0, -20.9]
-            y_pose: [4.3, 8.7]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-            - "g1"
-          g0:
-            x_pose: [-21.1, -20.9]
-            y_pose: [5.8, 6.3]
-          g1:
-            x_pose: [-21.1, -20.9]
-            y_pose: [14.8, 15.3]
-
-
-      env_f:
-        turtlebot1:
-          position:
-            x_pose: [-4.0, -3.2]
-            y_pose: [6.3, 7.8]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [1.0, 1.0]
-            w: [1.0, 1.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: [-3.738164, -3.2]
-            y_pose: [11.0, 13.0]
-
-        turtlebot2:
-          position:
-            x_pose: [-2.2, 1.4]
-            y_pose: [10.3, 10.7]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 0.0
-            w: 1.0
-          goals:
-            - "g0"
-          g0:
-            x_pose: [-8.5, -5.5]
-            y_pose: [9.3, 10.7]
-
-        turtlebot3:
-          position:
-            x_pose: [-8.5, -8.5]
-            y_pose: [9.3, 9.7]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 0.0
-            w: 1.0
-          goals:
-            - "g0"
-          g0:
-            x_pose: [-2.2, 1.4]
-            y_pose: [9.3, 10.7]
-
-      env_f_passing:
-        turtlebot1:
-          position:
-            x_pose: [-4.0, -3.2]
-            y_pose: [6.3, 7.8]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [1.0, 1.0]
-            w: [1.0, 1.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: [-3.738164, -3.2]
-            y_pose: [11.0, 13.0]
-
-        turtlebot2:
-          position:
-            x_pose: [-4.0, -3.8]
-            y_pose: [13.7, 18.7]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: -1.0
-            w: 1.0
-          goals:
-            - "g0"
-            - "g1"
-          g0:
-            x_pose: [-4.0, -3.8]
-            y_pose: [11.3, 11.7]
-          g1:
-            x_pose: [-4.0, -3.8]
-            y_pose: [6.3, 7.8]
-
-        turtlebot3:
-          position:
-            x_pose: [-8.5, -4.5]
-            y_pose: [9.3, 9.7]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 0.0
-            w: 1.0
-          goals:
-            - "g0"
-          g0:
-            x_pose: [-2.2, 1.4]
-            y_pose: [9.3, 9.7]
-    
-      env_b_north:
-        turtlebot1:
-          position:
-            x_pose: [14.0, 15.0]
-            y_pose: [9.0, 9.5]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [1.0, 1.0]
-            w: [1.0, 1.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: [14.0, 16.0]
-            y_pose: [15.0, 16.0]
-
-        turtlebot2:
-          position:
-            x_pose: [9.7, 12.4]
-            y_pose: [13.0, 16.0]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: -1.0
-            w: 1.0
-          goals:
-            - "g0"
-            - "g1"
-          g0:
-            x_pose: [14.6, 14.6]
-            y_pose: [12.0, 12.0]
-          g1:
-            x_pose: [10.3, 10.8]
-            y_pose: [8.0, 10.0]
-
-        turtlebot3:
-          position:
-            x_pose: [18.0, 20.4]
-            y_pose: [15.0, 16.0]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: -1.0
-            w: 1.0
-          goals:
-            - "g0"
-            - "g1"
-            - "g2"
-
-          g0:
-            x_pose: [14.6, 14.6]
-            y_pose: [13.0, 13.0]
-          g1:
-            x_pose: [14.6, 14.6]
-            y_pose: [11.0, 11.0]
-          g2:
-            x_pose: [18.3, 19.8]
-            y_pose: [8.0, 10.0]
-
-    
-      env_b_north_crossing:
-        turtlebot1:
-          position:
-            x_pose: [11.0, 15.0]
-            y_pose: [9.0, 11.0]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [1.0, 1.0]
-            w: [1.0, 1.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: [14.0, 16.0]
-            y_pose: [15.0, 16.0]
-
-        turtlebot2:
-          position:
-            x_pose: [10.0, 11.0]
-            y_pose: [8.0, 9.5]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: -1.0
-            w: 1.0
-          goals:
-            - "g0"
-            - "g1"
-            - "g2"
-
-          g0:
-            x_pose: [15.7, 15.7]
-            y_pose: [11.0, 11.0]
-          g1:
-            x_pose: [15.7, 15.7]
-            y_pose: [13.0, 13.0]
-          g2:
-            x_pose: [9.3, 12.8]
-            y_pose: [14.0, 16.0]
-
-        turtlebot3:
-          position:
-            x_pose: [18.0, 20.4]
-            y_pose: [15.0, 16.0]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: -1.0
-            w: 1.0
-          goals:
-            - "g0"
-            - "g1"
-            - "g2"
-
-          g0:
-            x_pose: [14.6, 14.6]
-            y_pose: [13.0, 13.0]
-          g1:
-            x_pose: [14.6, 14.6]
-            y_pose: [11.0, 11.0]
-          g2:
-            x_pose: [18.3, 19.8]
-            y_pose: [8.0, 10.0]
-
-    
-      env_b_south_room_cross:
-        turtlebot1:
-          position:
-            x_pose: [10.0, 11.0]
-            y_pose: [7.0, 8.5]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [1.0, 1.0]
-            w: [1.0, 1.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: [16.0, 18.0]
-            y_pose: [10.0, 11.0]
-
-        turtlebot2:
-          position:
-            x_pose: [9.5, 11.0]
-            y_pose: [11.0, 11.5]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: -1.0
-            w: 1.0
-          goals:
-            - "g0"
-            - "g1"
-            - "g2"
-          g0:
-            x_pose: [13.0, 15.0]
-            y_pose: [7.0, 8.5]
-
-          g1:
-            x_pose: [16.0, 17.0]
-            y_pose: [10.0, 11.0]
-          g2:
-            x_pose: [13.0, 13.2]
-            y_pose: [10.0, 11.0]
-        turtlebot3:
-          position:
-            x_pose: [18.0, 20.4]
-            y_pose: [15.0, 16.0]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: -1.0
-            w: 1.0
-          goals:
-            - "g0"
-            - "g1"
-            - "g2"
-            - "g3"
-
-          g0:
-            x_pose: [14.6, 14.6]
-            y_pose: [13.0, 13.0]
-          g1:
-            x_pose: [14.6, 14.6]
-            y_pose: [11.0, 11.0]
-          g2:
-            x_pose: [12.3, 14.8]
-            y_pose: [8.0, 8.5]
-          g3:
-            x_pose: [19.3, 19.8]
-            y_pose: [8.0, 8.5]
-
-    
-      env_b_north_room_cross:
-        turtlebot1:
-          position:
-            x_pose: [10.0, 11.0]
-            y_pose: [15.0, 15.5]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [0.0, 0.0]
-            w: [1.0, 1.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: [18.0, 18.0]
-            y_pose: [13.0, 14.0]
-
-        turtlebot2:
-          position:
-            x_pose: [9.5, 10.0]
-            y_pose: [13.0, 13.5]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: -1.0
-            w: 1.0
-          goals:
-            - "g0"
-            - "g1"
-
-          g0:
-            x_pose: [12.0, 13.0]
-            y_pose: [15.0, 16.0]
-          g1:
-            x_pose: [16.0, 17.0]
-            y_pose: [13.0, 13.4]
-
-
-        turtlebot3:
-          position:
-            x_pose: [18.0, 20.4]
-            y_pose: [15.0, 16.0]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: -1.0
-            w: 1.0
-          goals:
-            - "g0"
-
-          g0:
-            x_pose: [10.6, 12.6]
-            y_pose: [14.0, 14.0]
-          g1:
-            x_pose: [14.6, 14.6]
-            y_pose: [11.0, 11.0]
-          g2:
-            x_pose: [12.3, 14.8]
-            y_pose: [8.0, 8.5]
-          g3:
-            x_pose: [19.3, 19.8]
-            y_pose: [8.0, 8.5]
-
-      env_b_south:
-        turtlebot1:
-          position:
-            x_pose: [13.7, 16.4]
-            y_pose: [14.0, 16.0]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [-1.0, -1.0]
-            w: [1.0, 1.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: [10.3, 16.8]
-            y_pose: [8.0, 10.0]
-
-        turtlebot2:
-          position:
-            x_pose: [9.7, 12.4]
-            y_pose: [7.0, 10.0]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-            - "g1"
-            - "g2"
-          g0:
-            x_pose: [15.7, 15.7]
-            y_pose: [11.0, 11.0]
-          g1:
-            x_pose: [15.7, 15.7]
-            y_pose: [13.0, 13.0]
-          g2:
-            x_pose: [17.3, 18.8]
-            y_pose: [14.0, 15.0]
-
-        turtlebot3:
-          position:
-            x_pose: [15.7, 17.4]
-            y_pose: [7.0, 10.0]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-            - "g1"
-            - "g2"
-
-          g0:
-            x_pose: [15.7, 15.7]
-            y_pose: [11.0, 11.0]
-          g1:
-            x_pose: [15.7, 15.7]
-            y_pose: [13.0, 13.0]
-          g2:
-            x_pose: [9.3, 12.8]
-            y_pose: [14.0, 16.0]
-
-      env_g_left:
-        turtlebot1:
-          position:
-            x_pose: [-25.5,-23.8]
-            y_pose: [-19.6, -15.6]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [1.0, 1.0]
-            w: [1.0, 1.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: [-25.5,-18.8]
-            y_pose: [-4.5, -1.8]
-
-        turtlebot2:
-          position:
-            x_pose: [-19.5,-18.8]
-            y_pose: [-2.5, -1.8]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-            - "g1"
-          g0:
-            x_pose: [-25.4,-25.0]
-            y_pose: [-1.9, -1.9]
-          g1:
-            x_pose: [-25.4,-25.0]
-            y_pose: [-19.0, -15.0]
-
-        turtlebot3:
-          position:
-            x_pose: [-18.5, -18.0]
-            y_pose: [-19.6, -15.6]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-            - "g1"
-            - "g2"
-
-          g0:
-            x_pose: [-19.5,-18.8]
-            y_pose: [-2.5, -1.8]
-          g1:
-            x_pose: [-25.4,-25.0]
-            y_pose: [-1.9, -1.9]
-          g2:
-            x_pose: [-25.4,-25.0]
-            y_pose: [-19.0, -15.0]
-
-      env_g_right:
-        turtlebot1:
-          position:
-            x_pose: [-19.7,-18.0]
-            y_pose: [-19.6, -15.6]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [1.0, 1.0]
-            w: [1.0, 1.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: [-25.5,-18.8]
-            y_pose: [-4.5, -1.8]
-
-        turtlebot2:
-          position:
-            x_pose: [-25.5,-18.8]
-            y_pose: [-4.5, -4.0]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-            - "g1"
-          g0:
-            x_pose: [-19.7,-19.7]
-            y_pose: [-4.5, -4.0]
-          g1:
-            x_pose: [-19.7,-19.4]
-            y_pose: [-19.0, -15.0]
-
-        turtlebot3:
-          position:
-            x_pose: [-24.5, -23.8]
-            y_pose: [-19.6, -15.6]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-            - "g1"
-            - "g2"
-
-          g0:
-            x_pose: [-23.8,-23.8]
-            y_pose: [-4.5, -4.0]
-          g1:
-            x_pose: [-19.7,-19.7]
-            y_pose: [-4.5, -4.0]
-          g2:
-            x_pose: [-19.7,-19.4]
-            y_pose: [-19.0, -15.0]
-
-      env_h_1:
-        turtlebot1:
-          position:
-            x_pose: [17.0,20.5]
-            y_pose: [-19.5,-19.0]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [1.0, 1.0]
-            w: [1.0, 1.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: [19.0,21.0]
-            y_pose: [-14.0, -13.4]
-
-        turtlebot2:
-          position:
-            x_pose: [23.0,27.0]
-            y_pose: [-14.0, -13.4]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-            - "g1"
-          g0:
-            x_pose: [17.5,17.5]
-            y_pose: [-13.3, -13.3]
-          g1:
-            x_pose: [17.5,17.5]
-            y_pose: [-20.0, -19.0]
-
-        turtlebot3:
-          position:
-            x_pose: [11.5, 12.5]
-            y_pose: [-17.0, -16.0]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-            - "g1"
-          g0:
-            x_pose: [17.0,17.0]
-            y_pose: [-16.0, -16.0]
-          g1:
-            x_pose: [23.0,27.0]
-            y_pose: [-11.0, -10.0]
-
-      
-      env_h_2:
-        turtlebot1:
-          position:
-            x_pose: [14.0,16.5]
-            y_pose: [-14.0,-13.0]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [0.0, 0.0]
-            w: [1.0, 1.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: [20.0,22.0]
-            y_pose: [-14.0,-13.0]
-
-        turtlebot2:
-          position:
-            x_pose: [23.0,27.0]
-            y_pose: [-11.0, -10.0]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-            - "g1"
-          g0:
-            x_pose: [17.5,17.5]
-            y_pose: [-12.8, -12.8]
-          g1:
-            x_pose: [17.5,17.5]
-            y_pose: [-20.0, -19.0]
-
-        turtlebot3:
-          position:
-            x_pose: [11.5, 12.5]
-            y_pose: [-17.0, -16.0]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-            - "g1"
-            - "g2"
-          g0:
-            x_pose: [19.0,19.0]
-            y_pose: [-16.0, -16.0]
-          g1:
-            x_pose: [19.0,19.0]
-            y_pose: [-12.9, -12.9]            
-          g2:
-            x_pose: [12.5,14.0]
-            y_pose: [-12.9, -12.9] 
-      
-      env_h_2_2:
-        turtlebot1:
-          position:
-            x_pose: [18.0,22.5]
-            y_pose: [-14.0,-13.0]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [1.0, 1.0]
-            w: [0.0, 0.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: [13.0,14.0]
-            y_pose: [-14.0,-13.0]
-
-        turtlebot2:
-          position:
-            x_pose: [23.0,27.0]
-            y_pose: [-11.0, -10.0]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-            - "g1"
-          g0:
-            x_pose: [17.5,17.5]
-            y_pose: [-12.8, -12.8]
-          g1:
-            x_pose: [17.5,17.5]
-            y_pose: [-20.0, -19.0]
-
-        turtlebot3:
-          position:
-            x_pose: [11.5, 12.5]
-            y_pose: [-17.0, -16.0]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-            - "g1"
-            - "g2"
-          g0:
-            x_pose: [19.0,19.0]
-            y_pose: [-16.0, -16.0]
-          g1:
-            x_pose: [19.0,19.0]
-            y_pose: [-12.9, -12.9]            
-          g2:
-            x_pose: [12.5,14.0]
-            y_pose: [-12.9, -12.9] 
-
-
-      env_h_3:
-        turtlebot1:
-          position:
-            x_pose: [14.0, 15.5]
-            y_pose: [-10.0, -10.0]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [0.0, 0.0]
-            w: [1.0, 1.0]
-          goals:
-            - "g_h2"
-          g_h2:
-            x_pose: [21.0, 21.5]
-            y_pose: [-5.0, -1.0]
-
-        turtlebot2:
-          position:
-            x_pose: [11.0,12.5]
-            y_pose: [-5.0, -3.0]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g_h4"
-            - "g_h2"
-            - "g_h0"
-
-          g_h4:
-            x_pose: [19.0, 21.0]
-            y_pose: [-10.0, -9.0]
-          g_h2:
-            x_pose: [23.0, 27.5]
-            y_pose: [-5.0, -1.0]   
-          g_h0:
-            x_pose: [11.0,12.5]
-            y_pose: [-1.5, -1.0]    
-
-        turtlebot3:
-          position:
-            x_pose: [14.0,15.0]
-            y_pose: [-14.0,-13.0]  
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g_h0"
-            - "g_h2"
-  
-          g_h0:
-            x_pose: [15.0,16.5]
-            y_pose: [-3.0, -1.0]   
-          g_h2:
-            x_pose: [23.0, 27.5]
-            y_pose: [-5.0, -1.0]         
-
-      env_h_3_2:
-        turtlebot1:
-          position:
-            x_pose: [20.0, 23.5]
-            y_pose: [-11.0, -10.0]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [0.7, 0.7]
-            w: [0.7, 0.7]
-          goals:
-            - "g_h2"
-          g_h2:
-            x_pose: [21.0, 21.5]
-            y_pose: [-5.0, -1.0]
-
-        turtlebot2:
-          position:
-            x_pose: [11.0,12.5]
-            y_pose: [-5.0, -3.0]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g_h4"
-            - "g_h2"
-            - "g_h0"
-
-          g_h4:
-            x_pose: [19.0, 21.0]
-            y_pose: [-10.0, -9.0]
-          g_h2:
-            x_pose: [23.0, 27.5]
-            y_pose: [-5.0, -1.0]   
-          g_h0:
-            x_pose: [11.0,12.5]
-            y_pose: [-1.5, -1.0]    
-
-        turtlebot3:
-          position:
-            x_pose: [14.0,15.0]
-            y_pose: [-14.0,-13.0]  
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g_h0"
-            - "g_h2"
-  
-          g_h0:
-            x_pose: [15.0,16.5]
-            y_pose: [-3.0, -1.0]   
-          g_h2:
-            x_pose: [23.0, 27.5]
-            y_pose: [-5.0, -1.0]  
-
-      corridor_passing_north:
-        turtlebot1:
-          position:
-            x_pose: [-5.0, -4.0]
-            y_pose: [1.2, 1.7]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [0.0, 0.0]
-            w: [0.9, 1.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: 0.38164
-            y_pose: 0.88985
-
-        turtlebot2:
-          position:
-            x_pose: [0.0, 2.0]
-            y_pose: [1.2, 1.7]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 0.0
-          goals:
-            - "g0"
-            - "g1"
-           
-          g0:
-            x_pose: 0.00
-            y_pose: 1.7
-          g1:
-            x_pose: -4.514920
-            y_pose: 1.7
-        turtlebot3:
-          position:
-            x_pose: [4.5, 4.5]
-            y_pose: [-1.2, -1.2]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-
-          g0:
-            x_pose: 4.4
-            y_pose: -1.1
-                    
-      crossing_office:
-        turtlebot1:
-          position:
-            x_pose: [-5.2, -4.8]
-            y_pose: [-2.8, -2.5]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [0.2, 0.8]
-            w: [1.0, 1.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: -2.4
-            y_pose: -0.3
-
-        turtlebot2:
-          position:
-            x_pose: [-5.0, -4.6]
-            y_pose: [-0.3, -0.1]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 0.0
-            w: 1.0
-          goals:
-            - "g0"
-
-          g0:
-            x_pose: -2.4
-            y_pose: -3.1
-
-
-        turtlebot3:
-          position:
-            x_pose: [4.5, 4.5]
-            y_pose: [-1.2, -1.2]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-
-          g0:
-            x_pose: 4.4
-            y_pose: -1.1
-
-
-      crossing_office_inverse:
-        turtlebot1:
-          position:
-
-            x_pose: [-5.0, -4.6]
-            y_pose: [-0.3, -0.1]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [0.2, 0.8]
-            w: [-1.0, -1.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: -2.4
-            y_pose: -3.1
-
-        turtlebot2:
-          position:
-            x_pose: [-5.0, -4.6]
-            y_pose: [-2.8, -2.5]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-
-          g0:
-            x_pose: -2.4
-            y_pose: -0.1
-        turtlebot3:
-          position:
-            x_pose: [4.5, 4.5]
-            y_pose: [-1.2, -1.2]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-
-          g0:
-            x_pose: 4.4
-            y_pose: -1.1
-
-
-      combination_crossing_passing:
-        turtlebot1:
-          position:
-            x_pose: [-5.4, -5.2]
-            y_pose: [1.2, 1.3]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [0.0, 0.0]
-            w: [0.9, 1.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: 0.38164
-            y_pose: 0.88985
-
-        turtlebot2:
-          position:
-            x_pose: [-3.3, -3.3]
-            y_pose: [-0.1, -0.0]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 0.0
-          goals:
-            - "g0"
-          g0:
-            x_pose: -4.0
-            y_pose: 2.4
-
-        turtlebot3:
-          position:
-            x_pose: [4.4, 4.5]
-            y_pose: [-1.2, -1.1]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-          g0:
-            x_pose: 4.4
-            y_pose: -1.1
-
-
-      overtaking:
-        turtlebot1:
-          position:
-
-            x_pose: [-3.5, -3.5]
-            y_pose: [1.0, 1.1]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [0.0, 0.0]
-            w: [1.0, 1.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: 4.4
-            y_pose: 0.8
-
-        turtlebot2:
-          position:
-            x_pose: [-4.2, -4.0]
-            y_pose: [1.5, 1.7]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 0.0
-            w: 1.0
-          goals:
-            - "g1"
-            - "g2"
-
-
-          g1:
-            x_pose: 2.8
-            y_pose: 0.8
-
-          g2:
-            x_pose: 4.4
-            y_pose: -2.8
-
-
-        turtlebot3:
-          position:
-            x_pose: [4.5, 4.5]
-            y_pose: [-1.2, -1.2]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-
-          g0:
-            x_pose: 4.4
-            y_pose: -1.1
-     
-      coffee_goal_agent_to_end_office:
-        turtlebot1:
-          position:
-            x_pose: [-0.0, 2.0]
-            y_pose: [1.2, 1.7]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [0.9, 1.0]
-            w: [0.0, 0.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: -4.738164
-            y_pose: 0.88985
-
-        turtlebot2:
-          position:
-            x_pose: [-5.2, -4.5]
-            y_pose: [1.2, 1.2]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 0.0
-            w: 1.0
-          goals:
-            - "g0"
-            - "g1"
-            - "g2"
-            - "g3"
-            - "g4"
-          g0:
-            x_pose: -4.074941
-            y_pose: 0.884138
-          g1:
-            x_pose: 2.938896
-            y_pose: 0.765595
-          g2:
-            x_pose: 3.224762
-            y_pose: -2.809936
-          g3:
-            x_pose: 4.795166
-            y_pose: -1.259289
+            x_pose: [1.22, 1.22]
+            y_pose: [-1.0, -1.0]
           g4:
-            x_pose: 2.712463
-            y_pose: 1.961474
-        turtlebot3:
-          position:
-            x_pose: [4.5, 4.5]
-            y_pose: [-1.2, -1.2]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
+            x_pose: [-1.55, -1.55]
+            y_pose: [-2.27, -2.27]
+          g5:
+            x_pose: [-1.82, -1.82]
+            y_pose: [-0.75, -0.75]
+          g6:
+            x_pose: [-2.1, -2.1]
+            y_pose: [1.0, 1.0]
+          g7:
+            x_pose: [-4.1, -4.1]
+            y_pose: [2.8, 2.8]
 
-          g0:
-            x_pose: 4.4
-            y_pose: -1.1
-      coffee4:
-        turtlebot1:
+        person1:
           position:
-            x_pose: [-0.0, 2.0]
-            y_pose: [1.2, 1.7]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [0.9, 1.0]
-            w: [0.0, 0.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: -4.738164
-            y_pose: 0.88985
-
-        turtlebot2:
-          position:
-            x_pose: [-5.2, -4.5]
-            y_pose: [1.2, 2.3]
+            x_pose: [1., 1.]  # Start on left side of circle (3-5=-2, radius=5)
+            y_pose: [1.0, 1.0]  # Center y=1
             z_pose: 0.01
           orientation:
             x: 0.0
@@ -2132,496 +531,64 @@
             w: 1.0
           goals:
             - "g0"
-            - "g1"
-            - "g2"
-            - "g3"
-            - "g4"
-          g0:
-            x_pose: -4.312028
-            y_pose: 0.943411
-          g1:
-            x_pose: 3.403193
-            y_pose: 0.785351
-          g2:
-            x_pose: 3.947271
-            y_pose: 3.384082
-          g3:
-            x_pose: 3.305351
-            y_pose: 1.892304
-          g4:
-            x_pose: -3.631440
-            y_pose: 2.030644
-      
-        turtlebot3:
-          position:
-            x_pose: [4.5, 4.5]
-            y_pose: [-1.2, -1.2]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
+            #- "g1"
 
           g0:
-            x_pose: 4.4
-            y_pose: -1.1          
-      coffee5:
-        turtlebot1:
+            x_pose: [2., 2.]  # Start on right side of circle (3+5=8, radius=5)
+            y_pose: [-1.0,-1.0]  # Center y=1
+          g1:
+            x_pose: [-3., -3.]  # Start on right side of circle (3+5=8, radius=5)
+            y_pose: [-2.0, -2.0]  # Center y=1
+
+      exp_4:
+        turtlebot3:
           position:
-            x_pose: [-2.0, 2.0]
-            y_pose: [1.2, 1.7]
+            x_pose: [-1., -1.]  # Start on right side of circle (3+5=8, radius=5)
+            y_pose: [-2.0,-2.0]  # Center y=1
             z_pose: [0.04, 0.04]
           orientation:
             x: [0.0, 0.0]
             y: [0.0, 0.0]
-            z: [0.9, 1.0]
-            w: [0.0, 0.0]
+            z: [0.9, 1.0]  # Facing toward circle center
+            w: [0.1, 0.2]
           goals:
-            - "g0"
-          g0:
-            x_pose: -4.738164
-            y_pose: 0.88985
-
-        turtlebot2:
-          position:
-            x_pose: [-5.2, -4.5]
-            y_pose: [1.2, 2.3]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 0.0
-            w: 1.0
-          goals:
-            - "g0"
-            - "g1"
-            - "g2"
             - "g3"
-            - "g4"
           g0:
-            x_pose: -4.292271
-            y_pose: 0.884138
-          g1:
-            x_pose: 1.852245
-            y_pose: 0.884138
-          g2:
-            x_pose: 1.981234
-            y_pose: 1.991117
-          g3:
-            x_pose: -3.087959
-            y_pose: 2.020762
-          g4:
-            x_pose: -4.659112
-            y_pose: 2.613650
-
-        turtlebot3:
-          position:
-            x_pose: [4.5, 4.5]
-            y_pose: [-1.2, -1.2]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-
-          g0:
-            x_pose: 4.4
-            y_pose: -1.1
-
-      office3_begin_start:
-        turtlebot1:
-          position:
-            x_pose: [1.8, 2.0]
-            y_pose: [1.4, 1.7]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [0.0, 0.0]
-            w: [1.0, 1.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: 3.5
-            y_pose: -2.0
-
-        turtlebot2:
-          position:
-            x_pose: [2.6, 3.5]
-            y_pose: [-3.0, -0.7]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-            - "g1"
-            - "g2"
-            - "g3"
-            - "g4"
-            - "g5"
-          g0:
-            x_pose: 2.955389
-            y_pose: 1.641883
+            x_pose: [-3.6, -3.6] 
+            y_pose: [-1.6,-1.6] 
             
           g1:
-            x_pose: -4.685882
-            y_pose: 1.881651
+            x_pose: [-3.88, -3.88]
+            y_pose: [1.22, 1.22]
             
           g2:
-            x_pose: -4.675457
-            y_pose: 0.849610
+            x_pose: [0.84, 0.84]
+            y_pose: [0.9, 0.9]
             
           g3:
-            x_pose: 2.778170
-            y_pose: 0.787063
+            x_pose: [1.22, 1.22]
+            y_pose: [-1.0, -1.0]
             
           g4:
-            x_pose: 2.788062
-            y_pose: -2.485807
+            x_pose: [-1.55, -1.55]
+            y_pose: [-2.27, -2.27]
             
           g5:
-            x_pose: 3.934180
-            y_pose: -2.579366
-        turtlebot3:
+            x_pose: [-1.82, -1.82]
+            y_pose: [-0.75, -0.75]
+            
+          g6:
+            x_pose: [-2.1, -2.1]
+            y_pose: [1.0, 1.0]
+            
+          g7:
+            x_pose: [-4.1, -4.1]
+            y_pose: [2.8, 2.8]
+          
+        person1:
           position:
-            x_pose: [4.5, 4.5]
-            y_pose: [-1.2, -1.2]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-
-          g0:
-            x_pose: 4.4
-            y_pose: -1.1
-      office3_middle_start:
-        turtlebot1:
-          position:
-            x_pose: [-4.7, -2.0]
-            y_pose: [1.2, 1.7]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [0.0, 0.0]
-            w: [1.0, 1.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: 3.5
-            y_pose: -2.0
-
-        turtlebot2:
-          position:
-            x_pose: [3.0, 5.0]
-            y_pose: [1.2, 1.7]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 0.0
-          goals:
-            - "g0"
-            - "g1"
-            - "g2"
-            - "g3"
-            - "g4"
-            - "g5"
-          g0:
-            x_pose: -4.956924
-            y_pose: 1.933773
-            
-          g1:
-            x_pose: -4.873525
-            y_pose: 0.901732
-            
-          g2:
-            x_pose: 2.871992
-            y_pose: 0.849609
-            
-          g3:
-            x_pose: 2.923278
-            y_pose: -2.600208
-            
-          g4:
-            x_pose: 4.163457
-            y_pose: -2.787799
-            
-          g5:
-            x_pose: 4.434843
-            y_pose: -2.277351
-        turtlebot3:
-          position:
-            x_pose: [4.5, 4.5]
-            y_pose: [-1.2, -1.2]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-
-          g0:
-            x_pose: 4.4
-            y_pose: -1.1
-      office3_end_start_robot_corridor:
-        turtlebot1:
-          position:
-            x_pose: [-2.7, -2.0]
-            y_pose: [1.2, 1.7]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [0.0, 0.0]
-            w: [1.0, 1.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: 3.5
-            y_pose: -2.0
-
-        turtlebot2:
-          position:
-            x_pose: [-4.6, -4.0]
-            y_pose: [1.2, 1.2]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 0.0
-          goals:
-            - "g0"
-            - "g1"
-            - "g2"
-            - "g3"
-            - "g4"
-            - "g5"
-          g0:
-            x_pose: 2.944964
-            y_pose: 0.870459
-            
-          g1:
-            x_pose: 3.058760
-            y_pose: -2.621050
-            
-          g2:
-            x_pose: 4.080084
-            y_pose: -2.766954
-            
-          g3:
-            x_pose: 4.382730
-            y_pose: -2.225240
-            
-          g4:
-            x_pose: 3.122184
-            y_pose: 1.756555
-            
-          g5:
-            x_pose: -5.217540
-            y_pose: 2.058869
-        turtlebot3:
-          position:
-            x_pose: [4.5, 4.5]
-            y_pose: [-1.2, -1.2]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-
-          g0:
-            x_pose: 4.4
-            y_pose: -1.1
-      office3_end_start_robot_office:
-        turtlebot1:
-          position:
-            x_pose: [2.6, 5.0]
-            y_pose: [-3.0, -0.7]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [1.0, 1.0]
-            w: [1.0, 1.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: -2.0
-            y_pose: 1.7
-
-        turtlebot2:
-          position:
-            x_pose: [-2.0, -1.0]
-            y_pose: [1.2, 1.2]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 0.0
-          goals:
-            - "g0"
-            - "g1"
-            - "g2"
-            - "g3"
-            - "g4"
-            - "g5"
-          g0:
-            x_pose: 2.944964
-            y_pose: 0.870459
-            
-          g1:
-            x_pose: 3.058760
-            y_pose: -2.621050
-            
-          g2:
-            x_pose: 4.080084
-            y_pose: -2.766954
-            
-          g3:
-            x_pose: 4.382730
-            y_pose: -2.225240
-            
-          g4:
-            x_pose: 3.122184
-            y_pose: 1.756555
-            
-          g5:
-            x_pose: -5.217540
-            y_pose: 2.058869
-
-        turtlebot3:
-          position:
-            x_pose: [4.5, 4.5]
-            y_pose: [-1.2, -1.2]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-
-          g0:
-            x_pose: 4.4
-            y_pose: -1.1
-      office2_begin_start:
-        turtlebot1:
-          position:
-            x_pose: [-4.0, 0.0]
-            y_pose: [1.2, 1.7]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [0.0, 0.0]
-            w: [1.0, 1.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: 0.0
-            y_pose: -2.0
-
-        turtlebot2:
-          position:
-            x_pose: [-1.4, 1.4]
-            y_pose: [-3.0, -0.3]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-            - "g1"
-            - "g2"
-            - "g3"
-            - "g4"
-            - "g5"
-          g0:
-            x_pose: 0.682815
-            y_pose: 1.850376
-            
-          g1:
-            x_pose: -4.175074
-            y_pose: 2.090142
-            
-          g2:
-            x_pose: -4.946499
-            y_pose: 2.465431
-            
-          g3:
-            x_pose: -5.248812
-            y_pose: 0.766213
-            
-          g4:
-            x_pose: 0.849610
-            y_pose: 0.860034
-            
-          g5:
-            x_pose: 0.828601
-            y_pose: -1.995940
-        turtlebot3:
-          position:
-            x_pose: [4.5, 4.5]
-            y_pose: [-1.2, -1.2]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-
-          g0:
-            x_pose: 4.4
-            y_pose: -1.1            
-                    
-      office2_middle_start:
-        turtlebot1:
-          position:
-            x_pose: [-4.5, -4.0]
-            y_pose: [1.2, 1.7]
-            z_pose: [0.04, 0.04]
-          orientation:
-            x: [0.0, 0.0]
-            y: [0.0, 0.0]
-            z: [0.0, 0.0]
-            w: [1.0, 1.0]
-          goals:
-            - "g0"
-          g0:
-            x_pose: 0.0
-            y_pose: -2.0
-
-        turtlebot2:
-          position:
-            x_pose: [0.7, 2.0]
-            y_pose: [1.6, 1.7]
+            x_pose: [1., 1.]  # Start on left side of circle (3-5=-2, radius=5)
+            y_pose: [1.0, 1.0]  # Center y=1
             z_pose: 0.01
           orientation:
             x: 0.0
@@ -2630,73 +597,67 @@
             w: 1.0
           goals:
             - "g0"
-            - "g1"
-            - "g2"
-            - "g3"
-            - "g4"
-            - "g5"
+            #- "g1"
+
           g0:
-            x_pose: -4.414841
-            y_pose: 2.121419
-            
+            x_pose: [2., 2.]  # Start on right side of circle (3+5=8, radius=5)
+            y_pose: [-1.0,-1.0]  # Center y=1
           g1:
-            x_pose: -5.040801
-            y_pose: 2.538646
-            
-          g2:
-            x_pose: -5.300936
-            y_pose: 0.880883
-            
-          g3:
-            x_pose: 0.912157
-            y_pose: 0.828761
-            
-          g4:
-            x_pose: 0.932828
-            y_pose: -2.152278
-            
-          g5:
-            x_pose: -0.099006
-            y_pose: -1.787317
-                
+            x_pose: [-3., -3.]  # Start on right side of circle (3+5=8, radius=5)
+            y_pose: [-2.0, -2.0]  # Center y=1
+
+      exp_5:
         turtlebot3:
           position:
-            x_pose: [4.5, 4.5]
-            y_pose: [-1.2, -1.2]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-
-          g0:
-            x_pose: 4.4
-            y_pose: -1.1
-
-      office2_end_start_robot_corridor:
-        turtlebot1:
-          position:
-            x_pose: [5.0,5.0]
-            y_pose: [1.2, 1.7]
+            x_pose: [-1., -1.]  # Start on right side of circle (3+5=8, radius=5)
+            y_pose: [-2.0,-2.0]  # Center y=1
             z_pose: [0.04, 0.04]
           orientation:
             x: [0.0, 0.0]
             y: [0.0, 0.0]
-            z: [1.0, 1.0]
-            w: [0.0, 0.0]
+            z: [0.9, 1.0]  # Facing toward circle center
+            w: [0.1, 0.2]
           goals:
-            - "g0"
+            - "g4"
           g0:
-            x_pose: 0.0
-            y_pose: -2.0
-
-        turtlebot2:
+            x_pose: [-4.0, -4.0]  # Goal on opposite side (3-5=-2, radius=5)
+            y_pose: [4.0, 4.0]
+          g0:
+            x_pose: [-3.6, -3.6] 
+            y_pose: [-1.6,-1.6] 
+            
+          g1:
+            x_pose: [-3.88, -3.88]
+            y_pose: [1.22, 1.22]
+            
+          g2:
+            x_pose: [0.84, 0.84]
+            y_pose: [0.9, 0.9]
+            
+          g3:
+            x_pose: [1.22, 1.22]
+            y_pose: [-1.0, -1.0]
+            
+          g4:
+            x_pose: [-1.55, -1.55]
+            y_pose: [-2.27, -2.27]
+            
+          g5:
+            x_pose: [-1.82, -1.82]
+            y_pose: [-0.75, -0.75]
+            
+          g6:
+            x_pose: [-2.1, -2.1]
+            y_pose: [1.0, 1.0]
+            
+          g7:
+            x_pose: [-4.1, -4.1]
+            y_pose: [2.8, 2.8]
+          
+        person1:
           position:
-            x_pose: [-3.6, -3.0]
-            y_pose: [1.2, 1.2]
+            x_pose: [1., 1.]  # Start on left side of circle (3+5=8, radius=5)
+            y_pose: [1.0, 1.0]  # Center y=1
             z_pose: 0.01
           orientation:
             x: 0.0
@@ -2705,74 +666,63 @@
             w: 1.0
           goals:
             - "g0"
-            - "g1"
-            - "g2"
-            - "g3"
-            - "g4"
-            - "g5"
-          g0:
-            x_pose: 0.943431
-            y_pose: 0.818335
-            
-          g1:
-            x_pose: 0.911983
-            y_pose: -2.225239
-            
-          g2:
-            x_pose: -0.151129
-            y_pose: -1.860444
-            
-          g3:
-            x_pose: 0.641116
-            y_pose: 1.673157
-            
-          g4:
-            x_pose: -4.560787
-            y_pose: 2.142266
-            
-          g5:
-            x_pose: -5.280088
-            y_pose: 2.517554
+            #- "g1"
 
+          g0:
+            x_pose: [2., 2.]  # Start on right side of circle (3+5=8, radius=5)
+            y_pose: [-1.0,-1.0]  # Center y=1
+          g1:
+            x_pose: [-3., -3.]  # Start on right side of circle (3+5=8, radius=5)
+            y_pose: [-2.0, -2.0]  # Center y=1
+
+      exp_6:
         turtlebot3:
           position:
-            x_pose: [4.5, 4.5]
-            y_pose: [-1.2, -1.2]
-            z_pose: 0.01
-          orientation:
-            x: 0.0
-            y: 0.0
-            z: 1.0
-            w: 1.0
-          goals:
-            - "g0"
-
-          g0:
-            x_pose: 4.4
-            y_pose: -1.1
-
-                              
-      office2_end_start_robot_office:
-        turtlebot1:
-          position:
-            x_pose: [-1.5,1.5]
-            y_pose: [-3.0, -0.3]
+            x_pose: [-1., -1.]  # Start on right side of circle (3+5=8, radius=5)
+            y_pose: [-2.0,-2.0]  # Center y=1
             z_pose: [0.04, 0.04]
           orientation:
             x: [0.0, 0.0]
             y: [0.0, 0.0]
-            z: [1.0, 1.0]
-            w: [1.0, 1.0]
+            z: [0.9, 1.0]  # Facing toward circle center
+            w: [0.1, 0.2]
           goals:
-            - "g0"
+            - "g5"
           g0:
-            x_pose: -4.6
-            y_pose: 2.0
-
-        turtlebot2:
+            x_pose: [-3.6, -3.6] 
+            y_pose: [-1.6,-1.6] 
+            
+          g1:
+            x_pose: [-3.88, -3.88]
+            y_pose: [1.22, 1.22]
+            
+          g2:
+            x_pose: [0.84, 0.84]
+            y_pose: [0.9, 0.9]
+            
+          g3:
+            x_pose: [1.22, 1.22]
+            y_pose: [-1.0, -1.0]
+            
+          g4:
+            x_pose: [-1.55, -1.55]
+            y_pose: [-2.27, -2.27]
+            
+          g5:
+            x_pose: [-1.82, -1.82]
+            y_pose: [-0.75, -0.75]
+            
+          g6:
+            x_pose: [-2.1, -2.1]
+            y_pose: [1.0, 1.0]
+            
+          g7:
+            x_pose: [-4.1, -4.1]
+            y_pose: [2.8, 2.8]
+        person1:
           position:
-            x_pose: [-4.6, -4.0]
-            y_pose: [1.2, 1.2]
+            x_pose: [1., 1.]  # Start on left side of circle (3+5=8, radius=5)
+            y_pose: [1.0, 1.0]  # Center y=1
             z_pose: 0.01
           orientation:
             x: 0.0
@@ -2781,55 +731,145 @@
             w: 1.0
           goals:
             - "g0"
-            - "g1"
-            - "g2"
-            - "g3"
-            - "g4"
-            - "g5"
+            #- "g1"
+
           g0:
-            x_pose: 0.943431
-            y_pose: 0.818335
-            
+            x_pose: [2., 2.]  # Start on right side of circle (3+5=8, radius=5)
+            y_pose: [-1.0,-1.0]  # Center y=1
           g1:
-            x_pose: 0.911983
-            y_pose: -2.225239
-            
-          g2:
-            x_pose: -0.151129
-            y_pose: -1.860444
-            
-          g3:
-            x_pose: 0.641116
-            y_pose: 1.673157
-            
-          g4:
-            x_pose: -4.560787
-            y_pose: 2.142266
-            
-          g5:
-            x_pose: -5.280088
-            y_pose: 2.517554
+            x_pose: [-3., -3.]  # Start on right side of circle (3+5=8, radius=5)
+            y_pose: [-2.0, -2.0]  # Center y=1
+
+      exp_7:
         turtlebot3:
           position:
-            x_pose: [4.5, 4.5]
-            y_pose: [-1.2, -1.2]
+            x_pose: [-1., -1.]  # Start on right side of circle (3+5=8, radius=5)
+            y_pose: [-2.0,-2.0]  # Center y=1
+            z_pose: [0.04, 0.04]
+          orientation:
+            x: [0.0, 0.0]
+            y: [0.0, 0.0]
+            z: [0.9, 1.0]  # Facing toward circle center
+            w: [0.1, 0.2]
+          goals:
+            - "g6"
+          g0:
+            x_pose: [-3.6, -3.6] 
+            y_pose: [-1.6,-1.6] 
+            
+          g1:
+            x_pose: [-3.88, -3.88]
+            y_pose: [1.22, 1.22]
+            
+          g2:
+            x_pose: [0.84, 0.84]
+            y_pose: [0.9, 0.9]
+            
+          g3:
+            x_pose: [1.22, 1.22]
+            y_pose: [-1.0, -1.0]
+            
+          g4:
+            x_pose: [-1.55, -1.55]
+            y_pose: [-2.27, -2.27]
+            
+          g5:
+            x_pose: [-1.82, -1.82]
+            y_pose: [-0.75, -0.75]
+            
+          g6:
+            x_pose: [-2.1, -2.1]
+            y_pose: [1.0, 1.0]
+            
+          g7:
+            x_pose: [-4.1, -4.1]
+            y_pose: [2.8, 2.8]
+        person1:
+          position:
+            x_pose: [1., 1.]  # Start on left side of circle (3+5=-2, radius=5)
+            y_pose: [1.0, 1.0]  # Center y=1
             z_pose: 0.01
           orientation:
             x: 0.0
             y: 0.0
-            z: 1.0
+            z: 0.0
             w: 1.0
           goals:
             - "g0"
+            #- "g1"
 
           g0:
-            x_pose: 4.4
-            y_pose: -1.1
-                              
+            x_pose: [2., 2.]  # Start on right side of circle (3+5=8, radius=5)
+            y_pose: [-1.0,-1.0]  # Center y=1
+          g1:
+            x_pose: [-3., -3.]  # Start on right side of circle (3+5=8, radius=5)
+            y_pose: [-2.0, -2.0]  # Center y=1
 
+      exp_8:
+        turtlebot3:
+          position:
+            x_pose: [-1., -1.]  # Start on right side of circle (3+5=8, radius=5)
+            y_pose: [-2.0,-2.0]  # Center y=1
+            z_pose: [0.04, 0.04]
+          orientation:
+            x: [0.0, 0.0]
+            y: [0.0, 0.0]
+            z: [0.9, 1.0]  # Facing toward circle center
+            w: [0.1, 0.2]
+          goals:
+            - "g7"
+          g0:
+            x_pose: [-3.6, -3.6] 
+            y_pose: [-1.6,-1.6] 
+            
+          g1:
+            x_pose: [-3.88, -3.88]
+            y_pose: [1.22, 1.22]
+            
+          g2:
+            x_pose: [0.84, 0.84]
+            y_pose: [0.9, 0.9]
+            
+          g3:
+            x_pose: [1.22, 1.22]
+            y_pose: [-1.0, -1.0]
+            
+          g4:
+            x_pose: [-1.55, -1.55]
+            y_pose: [-2.27, -2.27]
+            
+          g5:
+            x_pose: [-1.82, -1.82]
+            y_pose: [-0.75, -0.75]
+            
+          g6:
+            x_pose: [-2.1, -2.1]
+            y_pose: [1.0, 1.0]
+            
+          g7:
+            x_pose: [-4.1, -4.1]
+            y_pose: [2.8, 2.8]
+        person1:
+          position:
+            x_pose: [1., 1.]  # Start on left side of circle (3-5=-2, radius=5)
+            y_pose: [1.0, 1.0]  # Center y=1
+            z_pose: 0.01
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+          goals:
+            - "g0"
+            #- "g1"
 
-                              
-    
+          g0:
+            x_pose: [2., 2.]  # Start on right side of circle (3+5=8, radius=5)
+            y_pose: [-1.0,-1.0]  # Center y=1
+          g1:
+            x_pose: [-3., -3.]  # Start on right side of circle (3+5=8, radius=5)
+            y_pose: [-2.0, -2.0]  # Center y=1
+
     # Metrics from literature that can be used to evalaute the social awareness of the robot
     result_file: 'metrics.txt'
 

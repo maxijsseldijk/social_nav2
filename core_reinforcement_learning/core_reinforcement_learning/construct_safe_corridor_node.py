@@ -28,7 +28,7 @@ class SafeCorridor(Node):
         self.get_logger().error('Safe Corridor Node has been started with namespace ')
         qos_profile_task = QoSProfile(depth=3)
         qos_profile_task.durability = QoSDurabilityPolicy.VOLATILE
-        qos_profile_task.reliability = QoSReliabilityPolicy.RELIABLE
+        qos_profile_task.reliability = QoSReliabilityPolicy.BEST_EFFORT
         self.create_subscription(
             LaserScan, f'{self.get_namespace()}/scan', self.lidar_callback, qos_profile_task)
         self.declare_parameter('append_future_agent_points', True)
@@ -327,7 +327,7 @@ class SafeCorridor(Node):
         angle = msg.angle_min
         for distance in msg.ranges:
             # Check if the distance is valid
-            if not math.isinf(distance) and not distance < 0.2:
+            if not math.isinf(distance) and not distance < 0.15:
                 valid_points.append(self.polar_to_cartesian(distance, angle))
             angle += msg.angle_increment
 

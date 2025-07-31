@@ -190,6 +190,8 @@ protected:
   double desired_linear_vel_, base_desired_linear_vel_;
   double min_safety_distance_, max_safety_distance_;
   double collision_x_threshold_;
+  double turn_gain_;
+  double curvature_scale_factor_;
 };
 
 }  // namespace rl_pure_pursuit_controller

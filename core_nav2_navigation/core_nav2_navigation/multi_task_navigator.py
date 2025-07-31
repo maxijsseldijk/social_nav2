@@ -222,7 +222,7 @@ class MultiTaskNavigator(Node):
     def create_pose_from_route(self, route) -> list[PoseStamped]:
         task_points = []
         task_pose = PoseStamped()
-        task_pose.header.frame_id = f'{self.trim_ns}/map'
+        task_pose.header.frame_id = f'{self.trim_ns}/fake_map'
         task_pose.header.stamp = self.get_clock().now().to_msg()
         task_pose.pose.orientation.z = 1.0
         task_pose.pose.orientation.w = 0.0

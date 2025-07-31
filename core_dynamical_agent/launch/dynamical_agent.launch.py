@@ -139,6 +139,7 @@ def generate_launch_description():
             'pitch': pose['P'],
             'yaw': pose['Y'],
         },
+
     )
 
     publish_odom_node = Node(
@@ -188,6 +189,6 @@ def generate_launch_description():
 
         agent_launch,
         publish_odom_node,
-        twist_mux,
+        # twist_mux,
 
     ])

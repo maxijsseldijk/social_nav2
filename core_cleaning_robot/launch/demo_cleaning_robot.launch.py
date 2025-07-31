@@ -398,7 +398,7 @@ def generate_launch_description():
         prefix=f'xterm -title "Robot Control - {robot}" -e',
         remappings=[
             ('/cmd_vel', [PathJoinSubstitution([namespace,
-             TextSubstitution(text=str(robot))]), '/cmd_vel_key'])
+             TextSubstitution(text=str(robot))]), '/cmd_vel_ctrl'])
         ],
         condition=IfCondition(use_teleop)
     )
@@ -415,7 +415,7 @@ def generate_launch_description():
         launch_description.add_action(agent_launch)
 
     launch_description.add_action(teleop_keyboard)
-    launch_description.add_action(twist_mux)
+    # launch_description.add_action(twist_mux)
     if get_yaml_param(params, 'use_sim_time'):
         launch_description.add_action(set_pause_unpause_service_bridge)
         launch_description.add_action(set_model_pose_service_bridge)

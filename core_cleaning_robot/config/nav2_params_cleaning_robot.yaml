@@ -1,6 +1,6 @@
 amcl:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: False
     alpha1: 0.2
     alpha2: 0.2
     alpha3: 0.2
@@ -11,7 +11,7 @@ amcl:
     beam_skip_error_threshold: 0.9
     beam_skip_threshold: 0.3
     do_beamskip: false
-    global_frame_id: "<robot_namespace>/map"
+    global_frame_id: "<robot_namespace>/fake_map"
     lambda_short: 0.1
     laser_likelihood_max_dist: 2.0
     laser_max_range: 100.0
@@ -20,7 +20,7 @@ amcl:
     max_beams: 60
     max_particles: 2000
     min_particles: 500
-    odom_frame_id: "odom"
+    odom_frame_id: "<robot_namespace>/fake_odom"
     pf_err: 0.05
     pf_z: 0.99
     recovery_alpha_fast: 0.0
@@ -45,7 +45,7 @@ bt_navigator:
     action_server_result_timeout: 10000.0
     default_server_timeout: 60000
     wait_for_service_timeout: 1000000
-    global_frame: <robot_namespace>/map
+    global_frame: <robot_namespace>/fake_map
     robot_base_frame: <robot_namespace>/base_link
     odom_topic: /<robot_namespace>/odometry
     bt_loop_duration: 20
@@ -157,21 +157,23 @@ controller_server:
       debug_trajectory_details: True
 
       lookahead_dist: <rl_path_length>            
-      # Rl controller parameters
+      # Rl Pure Pursuit controller parameters
       desired_linear_vel: 0.26
-      min_safety_distance: 0.45 # Minimum distance to the closest obstacle to allow forward motion
-      max_safety_distance: 0.55 # Maximum distance to slow down the robot as (velocity) * (distance - min_safety_distance) / (max_safety_distance - min_safety_distance)
+      min_safety_distance: 0.2    # Minimum distance to the closest obstacle to allow forward motion
+      max_safety_distance: 0.4    # Maximum distance to slow down the robot as (velocity) * (distance - min_safety_distance) / (max_safety_distance - min_safety_distance)
       collision_x_threshold: 0.00 # Threshold for only considering point ahead of the robot for slowing down by using a tolerance we filter out points to the sides.
-      num_samples: 10  # Number of samples of the global path to find the point furthest ahead inside the safe corridor
-
-      controller_frame:  <robot_namespace>/odom
+      num_samples: 10             # Number of samples of the global path to find the point furthest ahead inside the safe corridor
+      turn_gain: 1.5              # Make robot turn sharper .
+      curvature_scale_factor: 0.5 # Reduce linear velocity in sharp corners.
+      controller_frame:  <robot_namespace>/fake_odom
       robot_base_frame: <robot_namespace>/base_link
 
+      #SFW controller parameters. When using this comment the DWB parameters!
       drivetype: "differential" # "differential" or "omnidirectional"
 
       max_trans_vel:        0.26 
       min_trans_vel:        0.0
-      max_rot_vel:          1.82 
+      max_rot_vel:          1.8 
       min_rot_vel:          0.0 
       max_trans_acc:        2.5
       max_rot_acc:          3.2
@@ -217,13 +219,15 @@ controller_server:
         naive_goal_time:    2.0
         people_velocity:    1.0
 
+
+      # DWB parameters
       min_vel_x: 0.0
       min_vel_y: 0.0
       max_vel_x: 0.26
       max_vel_y: 0.0
-      max_vel_theta: 1.0
+      max_vel_theta: 1.8
       min_speed_xy: 0.0
-      max_speed_xy: 0.26
+      max_speed_xy: 1.26
       min_speed_theta: 0.0
       acc_lim_x: 2.5
       acc_lim_y: 0.0
@@ -244,7 +248,7 @@ controller_server:
       limit_vel_cmd_in_traj: False
       stateful: True
       critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
-      BaseObstacle.scale: 0.5
+      BaseObstacle.scale: 0.08
       PathAlign.scale: 32.0
       GoalAlign.scale: 24.0
       PathAlign.forward_point_distance: 0.1
@@ -262,7 +266,7 @@ local_costmap:
       use_sim_time: True
       update_frequency: 5.0
       publish_frequency: 2.0
-      global_frame: <robot_namespace>/odom
+      global_frame: <robot_namespace>/fake_odom
       robot_base_frame: <robot_namespace>/base_link
       rolling_window: true
       width: 6
@@ -273,7 +277,7 @@ local_costmap:
 
 
       #footprint: "[ [0.1, 0.1], [0.1, -0.1], [-0.1, -0.1], [-0.1, 0.1] ]"
-      plugins: ["obstacle_layer","social_layer", "inflation_layer"]
+      plugins: ["obstacle_layer"]
       social_layer:
         plugin: "nav2_social_costmap_plugin::SocialLayer"
         people_topic: "/agents_global_frame"
@@ -295,7 +299,7 @@ local_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 10.0
-        inflation_radius: 0.35
+        inflation_radius: 0.3
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: True
@@ -331,9 +335,9 @@ global_costmap:
       lethal_cost_threshold: 256
 
 
-      global_frame: <robot_namespace>/map
+      global_frame: <robot_namespace>/fake_map
       robot_base_frame: <robot_namespace>/base_link
-      robot_radius: 0.46
+      robot_radius: 0.17
       resolution: 0.05
       track_unknown_space: true
       plugins: ["static_layer", "inflation_layer"]
@@ -348,7 +352,7 @@ global_costmap:
           topic: /<robot_namespace>/scan
           max_obstacle_height: 2.0
           clearing: True
-          marking: True
+          marking: False
           data_type: "LaserScan"
           raytrace_max_range: 6.0
           raytrace_min_range: 0.0
@@ -360,10 +364,10 @@ global_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         enabled: true
-        inflation_radius: 0.85
+        inflation_radius: 0.3
         cost_scaling_factor: 1.0
         inflate_unknown: false
-        inflate_around_unknown: true
+        inflate_around_unknown: false
       always_send_full_costmap: True
 
 # The yaml_filename does not need to be specified since it going to be set by defaults in launch.
@@ -374,7 +378,7 @@ map_server:
     use_sim_time: true
     yaml_filename: ''
     topic_name: "/<robot_namespace>/map"
-    frame_id: "<robot_namespace>/map"
+    frame_id: "<robot_namespace>/fake_map"
 
 map_saver:
   ros__parameters:
@@ -455,8 +459,8 @@ behavior_server:
       plugin: "nav2_behaviors/Wait"
     assisted_teleop:
       plugin: "nav2_behaviors/AssistedTeleop"
-    local_frame: <robot_namespace>/odom
-    global_frame: <robot_namespace>/map
+    local_frame: <robot_namespace>/fake_odom
+    global_frame: <robot_namespace>/fake_map
     robot_base_frame: <robot_namespace>/base_link
     transform_tolerance: 0.1
     simulate_ahead_time: 2.0

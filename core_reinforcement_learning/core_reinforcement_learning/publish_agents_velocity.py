@@ -13,6 +13,7 @@ from rclpy.exceptions import ROSInterruptException
 from tf2_ros import Buffer, TransformListener
 from tf2_geometry_msgs import do_transform_pose_stamped, do_transform_vector3
 from core_reinforcement_learning.utils import convert_twist_to_vector3
+from std_msgs.msg import Bool as BoolMsg
 
 OUTSIDE_RANGE_LOC = 6.0
 OUTSIDE_RANGE_VELOCITY = 0.0
@@ -56,7 +57,8 @@ class PublishAgentsVelocity(Node):
         local_robot_frame = self.get_parameter('robot_frame').value
         self.average_velocity = self.get_parameter('average_velocity').value
         self.alpha = self.get_parameter('smoothing_alpha').value
-
+        self.pause_motion_publisher = self.create_publisher(
+            BoolMsg, '/pause_motion', 1)
         self.previous_velocities = {}
 
         if len(robot_name) == 1 and robot_name is not None:
@@ -225,6 +227,9 @@ class PublishAgentsVelocity(Node):
         """
         msg_pose, msg_velocity = self.get_pose_and_velocity_vector(msg)
 
+        # TEMP FOR TESTING ONLY
+        self.pause_motion_publisher.publish(BoolMsg(data=False))
+
         # Transform both pose and velocity to robot frame
         transformed_pose, transformed_velocity = self.change_coordinate_frame(
             self.robot_frame, msg)
@@ -233,7 +238,6 @@ class PublishAgentsVelocity(Node):
                 agent_id, transformed_velocity)
             msg_velocity = self.calculate_average_velocity(
                 agent_id, msg_velocity)
-
         self.append_msg_to_buffer(
             self.received_messages, (transformed_pose, transformed_velocity), agent_id)
         self.append_msg_to_buffer(
@@ -281,7 +285,9 @@ class PublishAgentsVelocity(Node):
         msg_pose = PoseStamped()
         msg_pose.header = msg.header
         msg_pose.pose = msg.pose.pose
-        msg_velocity = convert_twist_to_vector3(msg)
+        msg_velocity = Vector3Stamped()
+        msg_velocity.header = msg.header
+        msg_velocity.vector = msg.twist.twist.linear
 
         return msg_pose, msg_velocity
 
